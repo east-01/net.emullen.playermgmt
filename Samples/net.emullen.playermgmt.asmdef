@@ -1,0 +1,19 @@
+{
+    "name": "PlayerMgmt.Samples",
+    "rootNamespace": "EMullen.PlayerMgmt.Samples",
+    "references": [
+        "Unity.InputSystem",
+        "Unity.TextMeshPro",
+        "Bootstrapper",
+        "PlayerMgmt"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

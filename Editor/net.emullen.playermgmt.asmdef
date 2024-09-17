@@ -1,0 +1,17 @@
+{
+    "name": "PlayerMgmt.Editor",
+    "rootNamespace": "EMullen.PlayerMgmt.Editor",
+    "references": [
+        "PlayerMgmt"
+    ],
+    "optionalUnityReferences": [],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
