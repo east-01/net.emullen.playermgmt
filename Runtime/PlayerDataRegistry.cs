@@ -207,6 +207,7 @@ namespace EMullen.PlayerMgmt
 
 #if FISHNET
 #region Networked registry
+#region Network events
         private void SubscribeToNetworkEvents()
         {
             if(InstanceFinder.NetworkManager == null) 
@@ -240,6 +241,7 @@ namespace EMullen.PlayerMgmt
                 NetworkPhase = NetworkedPDRPhase.DISCONNECTING; 
             }
         }
+#endregion
 
         private void SynchronizeWithNetworkedPDR() => PlayerDatas = NetworkedPlayerDataRegistry.Instance.PlayerDatas.ToDictionary(kp => kp.Key, kp => kp.Value);
 
