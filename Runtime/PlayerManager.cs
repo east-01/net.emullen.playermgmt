@@ -46,6 +46,14 @@ namespace EMullen.PlayerMgmt {
         public bool CanPlayerOneAutoSwitch => PlayerCount == 1 && !sceneBlacklistControlSchemeSwitch.Contains(SceneManager.GetActiveScene().name);
 #endregion
 
+#region Events
+        public delegate void LocalPlayerJoinedHandler(LocalPlayer lp);
+        public event LocalPlayerJoinedHandler LocalPlayerJoinedEvent;
+
+        public delegate void LocalPlayerLeftHandler(LocalPlayer lp);
+        public event LocalPlayerLeftHandler LocalPlayerLeftEvent;
+#endregion
+
         private void Awake()
         {
             if(Instance != null) {
@@ -109,7 +117,9 @@ namespace EMullen.PlayerMgmt {
             PlayerDataRegistry.Instance.Add(data);
 
             LocalPlayer newlp = new(input, data.GetData<IdentifierData>());
-            LocalPlayers[input.playerIndex] = newlp;            
+            LocalPlayers[input.playerIndex] = newlp;       
+
+            LocalPlayerJoinedEvent?.Invoke(newlp);     
         }
 
         /// <summary>
@@ -129,8 +139,11 @@ namespace EMullen.PlayerMgmt {
 
             PlayerDataRegistry.Instance.Remove(PlayerDataRegistry.Instance.GetPlayerData(lp.UID));
 
+            LocalPlayerLeftEvent?.Invoke(LocalPlayers[input.playerIndex]);
+
             LocalPlayers[input.playerIndex] = null;
             Destroy(input.gameObject);
+
         }
         /// <summary>
         /// Event call for removing player, shortcuts to the original RemovePlayer call 

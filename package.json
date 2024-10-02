@@ -1,6 +1,6 @@
 {
   "name": "net.emullen.playermgmt",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "displayName": "Player Management",
   "description": "Easily manage players and player data.",
   "unity": "2021.3",
@@ -13,6 +13,6 @@
   "author": {
     "name": "Ethan Mullen",
     "email": "mullen.ethan@yahoo.com",
-    "url": "https://www.emullen.net"
+    "url": "https://www.emullen.net" 
   }
 }
