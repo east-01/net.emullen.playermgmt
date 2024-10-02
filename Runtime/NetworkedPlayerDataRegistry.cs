@@ -7,7 +7,6 @@ using System;
 using FishNet.Connection;
 using System.Linq;
 using EMullen.Core;
-using Codice.Client.Common.WebApi;
 
 namespace EMullen.PlayerMgmt 
 {
