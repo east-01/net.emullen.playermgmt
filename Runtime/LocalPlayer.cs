@@ -15,5 +15,19 @@ namespace EMullen.PlayerMgmt
             IdentifierData = identifierData;
             UID = identifierData.uid;
         }
+
+        public PlayerData GetPlayerData() 
+        {
+            if(!HasPlayerData()) {
+                Debug.LogError("Can't get player data, LocalPlayer doesn't have any");
+                return null;
+            }
+            return PlayerDataRegistry.Instance.GetPlayerData(UID);
+        }
+
+        public bool HasPlayerData() 
+        {
+            return PlayerDataRegistry.Instance != null && PlayerDataRegistry.Instance.Contains(UID);
+        }
     }
 }
