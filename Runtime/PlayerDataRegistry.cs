@@ -210,7 +210,7 @@ namespace EMullen.PlayerMgmt
 #region Network events
         private void SubscribeToNetworkEvents()
         {
-            if(InstanceFinder.NetworkManager == null) 
+            if(NetworkManager.Instances.Count == 0) 
                 return;
             
             networkManager = InstanceFinder.NetworkManager;

@@ -66,9 +66,12 @@ namespace EMullen.PlayerMgmt {
             DontDestroyOnLoad(gameObject);
 
             PlayerInputManager = GetComponent<PlayerInputManager>();
+            string warningPrefix = $"PlayerInputManager on GameObject \"{PlayerInputManager.gameObject.name}\" warning: ";
             if(PlayerInputManager.maxPlayerCount == -1)
-                Debug.LogWarning($"PlayerInputManager on GameObject \"{PlayerInputManager.gameObject.name}\" maxPlayerCount isn't defined. The PlayerManager will only register the first 100 players.");
-            
+                Debug.LogWarning($"{warningPrefix}maxPlayerCount isn't defined. The PlayerManager will register the first 100 players.");
+            if(PlayerInputManager.playerPrefab.GetComponent<PlayerInput>() == null)
+                Debug.LogWarning($"{warningPrefix}playerPrefab doesn't have a PlayerInput component");
+
             LocalPlayers = new LocalPlayer[PlayerInputManager.maxPlayerCount == -1 ? 100 : PlayerInputManager.maxPlayerCount];
         }
 
