@@ -97,6 +97,9 @@ namespace EMullen.PlayerMgmt.Samples
                 case "setname":
                     InputCommand_SetName(argsNoCMD);
                     break;
+                case "db":
+                    InputCommand_DB(argsNoCMD);
+                    break;
                 default:
                     Debug.LogError($"Didn't recognize command \"{command}\"");
                     break;
@@ -120,6 +123,11 @@ namespace EMullen.PlayerMgmt.Samples
             nd.Name = string.Join(" ", args);
             SelectedPlayer.SetData(nd);
             Debug.Log($"Set name to \"{nd.Name}\"");
+        }
+
+        public void InputCommand_DB(string[] args) 
+        {
+
         }
     }
 #endregion
