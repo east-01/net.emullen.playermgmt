@@ -2,6 +2,9 @@ using UnityEngine;
 using TMPro;
 using System.Collections.Generic;
 using UnityEngine.InputSystem;
+using EMullen.Core.PlayerMgmt;
+using EMullen.PlayerMgmt;
+using EMullen.Core;
 
 namespace EMullen.PlayerMgmt.Samples 
 {
@@ -127,9 +130,16 @@ namespace EMullen.PlayerMgmt.Samples
 
         public void InputCommand_DB(string[] args) 
         {
-
+            string connectionString = "Server=localhost;Database=test;User Id=Ethan-Laptop-2/mulle;";
+            PlayerDatabase<SimplePlayerData> db = new(connectionString);
+            SimplePlayerData spd = db.Get("abcd");
         }
     }
 #endregion
 
+}
+
+public class SimplePlayerData : PlayerDataClass 
+{
+    private float score;
 }

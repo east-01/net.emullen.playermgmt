@@ -17,7 +17,8 @@ namespace EMullen.Core.PlayerMgmt
 
         public T Get(string uid) 
         {
-            using SqlConnection conn = new SqlConnection(connectionString);
+            BLog.Highlight(System.Environment.Version.ToString());
+            using SqlConnection conn = new(connectionString);
 
             try {
                 conn.Open();
