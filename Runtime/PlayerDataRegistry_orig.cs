@@ -21,58 +21,11 @@ namespace EMullen.PlayerMgmt
     /// There are several phases to joining the networked registry, see their detailed explanations
     ///   in their enum summaries.
     /// </summary>
-    public class PlayerDataRegistry : MonoBehaviour
-    {
-
-        public static PlayerDataRegistry Instance { get; private set;}
-
-        [SerializeField]
-        private GameObject NetworkedPlayerDataRegistryPrefab;
-        
-        [SerializeField]
-        private BLogChannel logSettings;
-        public BLogChannel LogSettings => logSettings;
-        [SerializeField]
-        private BLogChannel logSettingsPlayerData;
-        public BLogChannel LogSettingsPlayerData => logSettingsPlayerData;
-
-        /// <summary>
-        /// All tracked PlayerData objects, mapped using their IdentifierData#uid value.
-        /// </summary>
-        internal Dictionary<string, PlayerData> PlayerDatas { get; private set; }
+    public class PlayerDataRegistryOld : MonoBehaviour
+    {        
 
 #if FISHNET
-        private NetworkedPDRPhase networkPhase;
-        /// <summary>
-        /// The NetworkedPDRPhase represents what part of the connection process we're in to the
-        ///   networked player data registry. See NetworkedPDRPhase for details on each phase.
-        /// </summary>
-        public NetworkedPDRPhase NetworkPhase { 
-            get {
-                return networkPhase;
-            }
-            private set {
-                NetworkedPDRPhase prev = networkPhase;
-                networkPhase = value;
-                NetworkPhaseChangedEvent?.Invoke(prev, networkPhase);
-            }
-        }
-        private bool CheckUsingNetworkedRegistry() => 
-            PlayerManager.Instance.LocalPlayers != null &&
-            NetworkedPlayerDataRegistry.Instantiated && 
-            PlayerManager.Instance.LocalPlayers.Where(lp => lp != null).ToList().All(lp => NetworkedPlayerDataRegistry.Instance.PlayerDatas.ContainsKey(lp.UID));
-        public bool UsingNetworkedRegistry => NetworkPhase == NetworkedPDRPhase.IN_USE;
-
-        [SerializeField]
-        private float joinMessageTimeout = 10;
-        /// <summary>
-        /// The time since we last sent NetworkedPlayerDataRegistry#JoinRegistry message, set from
-        ///   the JoinRegistry method itself.
-        /// </summary>
-        internal float lastJoinTime = -1;
-
-        public delegate void NetworkPhaseChangedHandler(NetworkedPDRPhase prev, NetworkedPDRPhase current);
-        public event NetworkPhaseChangedHandler NetworkPhaseChangedEvent;
+        
 
         private NetworkManager networkManager;
 
@@ -84,14 +37,7 @@ namespace EMullen.PlayerMgmt
 
         private void Awake() 
         {
-            if(Instance != null) {
-                Destroy(gameObject);
-                Debug.Log($"Destroyed newly spawned PlayerDataRegistry since singleton Instance already exists.");
-                return;
-            } else {
-                Instance = this;
-                DontDestroyOnLoad(gameObject);
-            }
+            
 
 #if FISHNET
             networkManager = null;
@@ -246,28 +192,7 @@ namespace EMullen.PlayerMgmt
 
         private void SynchronizeWithNetworkedPDR() => PlayerDatas = NetworkedPlayerDataRegistry.Instance.PlayerDatas.ToDictionary(kp => kp.Key, kp => kp.Value);
 
-        private void UpdatePhase() 
-        {
-            switch(NetworkPhase) {
-                case NetworkedPDRPhase.DISABLED:
-                    if(PlayerManager.Instance.LocalPlayers != null && NetworkedPlayerDataRegistry.Instance != null)
-                        NetworkPhase = NetworkedPDRPhase.JOINING;
-                    break;
-                case NetworkedPDRPhase.JOINING:
-                    if(lastJoinTime == -1 || (Time.time - lastJoinTime > joinMessageTimeout))
-                        JoinNetworkedRegistry();
-
-                    if(CheckUsingNetworkedRegistry())
-                        NetworkPhase = NetworkedPDRPhase.IN_USE;
-                    break;
-                case NetworkedPDRPhase.IN_USE:
-                    break;
-                case NetworkedPDRPhase.DISCONNECTING:
-                    if(PlayerDatas.Values.All(pd => !pd.HasData<NetworkIdentifierData>()))
-                        NetworkPhase = NetworkedPDRPhase.DISABLED;
-                    break;
-            }
-        }
+        
 
         private void NetworkedPDRPhaseChangeEvent(NetworkedPDRPhase prev, NetworkedPDRPhase curr) 
         {
@@ -307,48 +232,4 @@ namespace EMullen.PlayerMgmt
 #endregion
 #endif
     }
-
-#if FISHNET
-    /// <summary>
-    /// Each phase is activated a different way and represents a different function.
-    /// </summary>
-    public enum NetworkedPDRPhase 
-    {
-        /// <summary><br/>
-        /// Set from:<br/>
-        /// - Initialization<br/>
-        /// - DISCONNECTING phase when we the data is done copying<br/>
-        /// Runs when:<br/>
-        /// - The PlayerDataRegistry is using its local data, not the data from the NPDR<br/>
-        /// </summary>
-        DISABLED, 
-        
-        /// <summary>
-        /// Set from:<br/>
-        /// - DISABLED phase when the NetworkedPlayerDataRegistry is instantiated and the local<br/>
-        ///   player's uids are not in the networked registry.<br/>
-        /// Runs when:<br/>
-        /// - The PlayerDataRegistry has sent NetworkedPlayerDataRegistry#JoinRegistry<br/>
-        /// </summary>
-        JOINING, 
-        
-        /// <summary>
-        /// Set from:<br/>
-        /// - JOINING phase once the NetworkedPlayerDataRegistry has all of the local player's uids.<br/>
-        /// Runs when:<br/>
-        /// - The NetworkedPlayerDataRegistry is in use, all data will be synchronized over the <br/>
-        ///   network.<br/>
-        /// </summary>
-        IN_USE, 
-        
-        /// <summary>
-        /// Set from:<br/>
-        /// - IN_USE once the client is losing connection<br/>
-        /// Runs when:<br/>
-        /// - The client is copying the data from the networked registry and placing it in local 
-        ///   registry<br/>
-        /// </summary>
-        DISCONNECTING
-    }
-#endif
 }

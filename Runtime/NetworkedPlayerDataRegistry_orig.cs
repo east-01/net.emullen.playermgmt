@@ -10,9 +10,9 @@ using EMullen.Core;
 
 namespace EMullen.PlayerMgmt 
 {
-    public class NetworkedPlayerDataRegistry : NetworkBehaviour
+    public class NetworkedPlayerDataRegistryOld : NetworkBehaviour
     {
-        public static NetworkedPlayerDataRegistry Instance { get; private set; }
+        public static NetworkedPlayerDataRegistryOld Instance { get; private set; }
         public static bool Instantiated => Instance != null;
         
         internal readonly SyncDictionary<string, PlayerData> PlayerDatas = new();
