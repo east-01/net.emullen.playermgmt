@@ -5,8 +5,12 @@ using UnityEngine.InputSystem;
 using EMullen.Core.PlayerMgmt;
 using EMullen.PlayerMgmt;
 using EMullen.Core;
+using System.Collections;
+using Newtonsoft.Json.Linq;
+using System;
+using EMullen.PlayerMgmt.Samples;
 
-namespace EMullen.PlayerMgmt.Samples 
+namespace EMullen.PlayerMgmt.Tests 
 {
     public class PlayerMgmtTestController : MonoBehaviour
     {
@@ -103,6 +107,12 @@ namespace EMullen.PlayerMgmt.Samples
                 case "db":
                     InputCommand_DB(argsNoCMD);
                     break;
+                case "register":
+                    InputCommand_Register(argsNoCMD);
+                    break;
+                case "login":
+                    InputCommand_LogIn(argsNoCMD);
+                    break;
                 default:
                     Debug.LogError($"Didn't recognize command \"{command}\"");
                     break;
@@ -128,18 +138,85 @@ namespace EMullen.PlayerMgmt.Samples
             Debug.Log($"Set name to \"{nd.Name}\"");
         }
 
-        public void InputCommand_DB(string[] args) 
+        public async void InputCommand_DB(string[] args) 
         {
-            string connectionString = "Server=localhost;Database=test;User Id=Ethan-Laptop-2/mulle;";
-            PlayerDatabase<SimplePlayerData> db = new(connectionString);
-            SimplePlayerData spd = db.Get("abcd");
+            string sqlServerAddr = "http://emullen.net:8921";
+            string database = "testdb";
+
+            PlayerDatabase<SimplePlayerData> db = new(sqlServerAddr, database);
+            if(args[0] == "out") {
+                SimplePlayerData spd = await db.Get("abcd");
+                
+                if(spd == null) {
+                    Debug.LogError("Failed to retrieve simple player data.");
+                    return;
+                }
+
+                Debug.Log("Score: " + spd.Score);
+            } else if(args[0] == "in") {
+                SimplePlayerData spd = new("abcd", 100.123f);
+                bool status = await db.Set(spd);
+                Debug.Log("Status: " + status);
+            }
+        }
+
+        public async void InputCommand_Register(string[] args) 
+        {
+            if(args.Length != 2) {
+                Debug.LogError("Incorrect amount of arguments");
+                return;
+            }
+
+            string authServerAddr = "https://emullen.net/auth";
+            PlayerAuthenticator auth = new(authServerAddr);
+            
+            try {
+                await auth.Register(args[0], args[1]);
+            } catch(AuthenticationException exception) {
+                Debug.LogError("Failed to register: " + exception.message);
+                return;
+            }
+
+            Debug.Log("Successfully registered user.");
+        }
+
+        public async void InputCommand_LogIn(string[] args) 
+        {
+            if(args.Length != 2) {
+                Debug.LogError("Incorrect amount of arguments");
+                return;
+            }
+
+            string authServerAddr = "https://emullen.net/auth";
+            PlayerAuthenticator auth = new(authServerAddr);
+            JObject obj;
+
+            try {
+                obj = await auth.LogIn(args[0], args[1]);
+            } catch(AuthenticationException exception) {
+                Debug.LogError("Failed to log in: " + exception.message);
+                return;
+            } catch(Exception exception) {
+                Debug.LogError(exception.Message);
+                return;
+            }
+
+            Debug.Log("Logged in: " + obj.ToString());
         }
     }
 #endregion
 
 }
 
-public class SimplePlayerData : PlayerDataClass 
+public class SimplePlayerData : PlayerDatabaseDataClass 
 {
+    private string uid;
+    public override string UID => uid;
     private float score;
+    public float Score => score;
+
+    public SimplePlayerData(string uid, float score) {
+        this.uid = uid;
+        this.score = score;
+    }
 }

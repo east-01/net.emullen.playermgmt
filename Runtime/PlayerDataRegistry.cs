@@ -28,6 +28,7 @@ namespace EMullen.PlayerMgmt
 
         [SerializeField]
         private GameObject NetworkedPlayerDataRegistryPrefab;
+        
         [SerializeField]
         private BLogChannel logSettings;
         public BLogChannel LogSettings => logSettings;
