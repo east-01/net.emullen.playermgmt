@@ -24,6 +24,12 @@ namespace EMullen.PlayerMgmt
 
         public NetworkIdentifierData() {}
 
+        public NetworkIdentifierData(int clientID, List<string> connectionsUIDs) 
+        {
+            this.clientID = clientID;
+            this.connectionsUIDs = connectionsUIDs;
+        }
+
         public override string ToString()
         {
             string isLocal = "";
