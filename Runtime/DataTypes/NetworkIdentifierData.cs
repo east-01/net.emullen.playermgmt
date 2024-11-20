@@ -20,26 +20,17 @@ namespace EMullen.PlayerMgmt
         ///   LocalConnection#clientID
         /// </summary>
         public int clientID;
-        public List<string> connectionsUIDs;
 
         public NetworkIdentifierData() {}
 
-        public NetworkIdentifierData(int clientID, List<string> connectionsUIDs) 
+        public NetworkIdentifierData(int clientID) 
         {
             this.clientID = clientID;
-            this.connectionsUIDs = connectionsUIDs;
         }
 
         public override string ToString()
         {
-            string isLocal = "";
-            if(PlayerManager.Instance != null && PlayerManager.Instance.LocalPlayers != null) {
-                List<string> localUIDs = PlayerManager.Instance.LocalPlayers.Where(lp => lp != null).Select(lp => lp.UID).ToList();
-                if(localUIDs.ToHashSet().SetEquals(connectionsUIDs.ToHashSet()))
-                    isLocal = "(LOCAL) ";
-            }
-
-            return $"{isLocal}id: {clientID}\n  Connections: {string.Join(", ", connectionsUIDs)}";
+            return $"id: {clientID}";
         }
     }
 }

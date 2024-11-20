@@ -64,7 +64,7 @@ namespace EMullen.PlayerMgmt {
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="data"></param>
-        private void SetDataNoUpdate<T>(T data) where T : PlayerDataClass 
+        internal void SetDataNoUpdate<T>(T data) where T : PlayerDataClass 
         {
             if(HasData<T>()) {
                 this.data[typeof(T)] = data;

@@ -551,10 +551,12 @@ MonoBehaviour:
   m_GameObject: {fileID: 6489424086885939164}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9f0a98a9b69cd744a8130f2cb7316a96, type: 3}
+  m_Script: {fileID: 11500000, guid: 356a3cc6bd5cf0349abe402ac204bc20, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  NetworkedPlayerDataRegistryPrefab: {fileID: 6584981003814464295, guid: edc031035fb3e9a4685b8bb7742271a0, type: 3}
   logSettings: {fileID: 11400000, guid: 5aa326e5a9946ef4faf5dbd5b2a1bbc1, type: 2}
   logSettingsPlayerData: {fileID: 11400000, guid: b207fadb89e44e74789407466f11b0ab, type: 2}
   joinMessageTimeout: 10
+  authAddress: 
+  databases:
+  - databaseURL: 

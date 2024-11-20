@@ -3,6 +3,7 @@ using EMullen.PlayerMgmt;
 using UnityEngine;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System;
 
 namespace EMullen.Core.PlayerMgmt 
 {
@@ -10,15 +11,20 @@ namespace EMullen.Core.PlayerMgmt
     /// Make connections to a PlayerData database containing type T. Requests to/from the datab
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public class PlayerDatabase<T> where T : PlayerDatabaseDataClass {
+    public class PlayerDatabase {
 
+        private readonly Type type;
         private readonly string sqlServerAddr;
         private readonly string tableName;
 
-        public PlayerDatabase(string sqlServerAddr, string tableName = null) 
+        public PlayerDatabase(Type type, string sqlServerAddr, string tableName = null) 
         {
+            if(!typeof(PlayerDatabaseDataClass).IsAssignableFrom(type))
+                throw new InvalidOperationException($"Can't initialize PlayerDatabase, the provided type \"{type.Name}\" is not an instance of PlayerDatabaseDataClass");
+
+            this.type = type;
             this.sqlServerAddr = sqlServerAddr;
-            this.tableName = tableName ?? typeof(T).Name.ToLower();
+            this.tableName = tableName ?? type.Name.ToLower();
         }
 
         /// <summary>
@@ -26,7 +32,7 @@ namespace EMullen.Core.PlayerMgmt
         /// </summary>
         /// <param name="uid">The UID identifier for the data.</param>
         /// <returns>The PlayerDatabaseDataClass associated with the uid if it exists, null if not.</returns>
-        public async Task<T> Get(string uid) 
+        public async Task<PlayerDatabaseDataClass> Get(string uid) 
         {
             string reqBody = WebRequests.CreateIDJSON(tableName, uid).ToString();
             string json = await WebRequests.WebPostString($"{sqlServerAddr}/fetch", reqBody);
@@ -38,10 +44,10 @@ namespace EMullen.Core.PlayerMgmt
 
             Debug.Log(json);
 
-            T toReturn = JsonConvert.DeserializeObject<T>(json);
+            PlayerDatabaseDataClass toReturn = (PlayerDatabaseDataClass) JsonConvert.DeserializeObject(json, type);
 
             if(toReturn == null)
-                Debug.LogError($"Failed to deserialize object of type {typeof(T).Name} with returned web data:\n{json}");
+                Debug.LogError($"Failed to deserialize object of type {type.Name} with returned web data:\n{json}");
 
             return toReturn;
         }
@@ -75,8 +81,12 @@ namespace EMullen.Core.PlayerMgmt
         /// </summary>
         /// <param name="data">The associated data to be inserted into the table</param>
         /// <returns>Success status.</returns>
-        public async Task<bool> Set(T data) 
+        public async Task<bool> Set(PlayerDatabaseDataClass data) 
         {
+            if(!data.GetType().IsInstanceOfType(type)) {
+                Debug.LogError($"Can't set data to database, provided data's type ({data.GetType().Name}) doesn't match the database type ({type.Name})");
+                return false;
+            }
             if(data == null) {
                 Debug.LogError("Can't set data to database, provided data is null.");
                 return false;
