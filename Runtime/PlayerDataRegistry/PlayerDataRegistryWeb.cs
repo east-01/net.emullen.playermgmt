@@ -11,6 +11,10 @@ namespace EMullen.PlayerMgmt
     public partial class PlayerDataRegistry : MonoBehaviour 
     {
         [SerializeField]
+        private bool authenticationRequired;
+        public bool AuthenticationRequired => authenticationRequired;
+
+        [SerializeField]
         private string authAddress;
         [SerializeField]
         private List<PlayerDatabaseMetadata> databaseMetadatas;
@@ -20,6 +24,11 @@ namespace EMullen.PlayerMgmt
 
         private void WebAwake() 
         {
+            if(!authenticationRequired) {
+                BLog.Log("Started PlayerDataRegistry without requiring authentication, web based features will be disabled.");
+                return;
+            }
+
             if(authAddress != null && authAddress.Length > 0) {
                 Authenticator = new PlayerAuthenticator(authAddress);
                 BLog.Log("Initialized player authenticator", LogSettings, 1);

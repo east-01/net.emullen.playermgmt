@@ -5,7 +5,9 @@
         "Unity.InputSystem",
         "Unity.TextMeshPro",
         "Bootstrapper",
-        "PlayerMgmt"
+        "PlayerMgmt",
+        "Core",
+        "MenuController"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

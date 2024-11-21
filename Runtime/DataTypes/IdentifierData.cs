@@ -22,11 +22,13 @@ namespace EMullen.PlayerMgmt
 
         public IdentifierData(int? localPlayerIndex = null) 
         {
-            this.uid = Guid.NewGuid().ToString();
+            this.uid = GenerateUID();
             this.localPlayerIndex = localPlayerIndex;
         }
 
         public override string ToString() => $"uid: {uid} idx: {localPlayerIndex}";
+
+        public static string GenerateUID() => Guid.NewGuid().ToString();
     }
 
     public static class IdentifierPlayerDataExtensions 

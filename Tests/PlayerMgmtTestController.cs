@@ -24,6 +24,8 @@ namespace EMullen.PlayerMgmt.Tests
 
         private int selectedPlayerIndex;
         public PlayerData SelectedPlayer { get { 
+            if(PlayerDataRegistry.Instance.GetAllData().Length == 0)
+                return null;
             CheckSelectionBounds();
             return PlayerDataRegistry.Instance.GetAllData()[selectedPlayerIndex];
         } }
@@ -143,9 +145,9 @@ namespace EMullen.PlayerMgmt.Tests
             string sqlServerAddr = "http://emullen.net:8921";
             string database = "testdb";
 
-            PlayerDatabase<SimplePlayerData> db = new(sqlServerAddr, database);
+            PlayerDatabase db = new(typeof(SimplePlayerData), sqlServerAddr, database);
             if(args[0] == "out") {
-                SimplePlayerData spd = await db.Get("abcd");
+                SimplePlayerData spd = (SimplePlayerData) await db.Get("abcd");
                 
                 if(spd == null) {
                     Debug.LogError("Failed to retrieve simple player data.");

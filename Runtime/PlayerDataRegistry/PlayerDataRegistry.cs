@@ -55,6 +55,7 @@ namespace EMullen.PlayerMgmt
             DontDestroyOnLoad(gameObject);
             
             NetworkedAwake();
+            WebAwake();
 
             PlayerDatas = new();
         }

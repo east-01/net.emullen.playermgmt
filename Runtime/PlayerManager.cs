@@ -29,6 +29,8 @@ namespace EMullen.PlayerMgmt {
         private GameObject inputPromptPanel;
         [SerializeField]
         private GameObject deviceMissingPanel;
+        [SerializeField]
+        private GameObject loginPanel;
 
         [SerializeField]
         private List<string> sceneBlacklistControlSchemeSwitch;
@@ -52,6 +54,9 @@ namespace EMullen.PlayerMgmt {
 
         public delegate void LocalPlayerLeftHandler(LocalPlayer lp);
         public event LocalPlayerLeftHandler LocalPlayerLeftEvent;
+
+        public delegate void LocalPlayerRequiresLogin(LocalPlayer lp);
+        public event LocalPlayerRequiresLogin LocalPlayerRequiresLoginEvent;
 #endregion
 
         private void Awake()
@@ -110,17 +115,13 @@ namespace EMullen.PlayerMgmt {
             input.onDeviceLost += PlayerInput_DeviceLost;
             input.onDeviceRegained += PlayerInput_DeviceRegained;
 
-            PlayerData data = new(input.playerIndex);
-            string identifier = data.GetUID();
-            if(PlayerDataRegistry.Instance.Contains(identifier)) {
-                Debug.LogError("Failed to add new player: Player is already registered");
-                return;
-            }
-
-            PlayerDataRegistry.Instance.Add(data);
-
-            LocalPlayer newlp = new(input, data.GetData<IdentifierData>());
+            LocalPlayer newlp = new(input);
             LocalPlayers[input.playerIndex] = newlp;       
+
+            if(!PlayerDataRegistry.Instance.AuthenticationRequired)
+                newlp.AddToPlayerDataRegistry();
+            else
+                LocalPlayerRequiresLoginEvent?.Invoke(newlp);
 
             LocalPlayerJoinedEvent?.Invoke(newlp);     
         }
@@ -140,7 +141,8 @@ namespace EMullen.PlayerMgmt {
             input.onDeviceLost -= PlayerInput_DeviceLost;
             input.onDeviceRegained -= PlayerInput_DeviceRegained;
 
-            PlayerDataRegistry.Instance.Remove(PlayerDataRegistry.Instance.GetPlayerData(lp.UID));
+            if(lp.HasPlayerData())
+                PlayerDataRegistry.Instance.Remove(PlayerDataRegistry.Instance.GetPlayerData(lp.UID));
 
             LocalPlayerLeftEvent?.Invoke(LocalPlayers[input.playerIndex]);
 
@@ -156,6 +158,10 @@ namespace EMullen.PlayerMgmt {
         ///   that owns that PlayerInput</param>
         public void RemovePlayer(LocalPlayer lp) => RemovePlayer(lp.Input);
 #endregion  
+
+#region PlayerDataRegistry interactions
+        
+#endregion
 
 #region Input prompts
         /// <summary>
