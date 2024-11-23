@@ -13,7 +13,7 @@ namespace EMullen.Core.PlayerMgmt
     /// <typeparam name="T"></typeparam>
     public class PlayerDatabase {
 
-        private readonly Type type;
+        public readonly Type Type;
         private readonly string sqlServerAddr;
         private readonly string tableName;
 
@@ -22,7 +22,7 @@ namespace EMullen.Core.PlayerMgmt
             if(!typeof(PlayerDatabaseDataClass).IsAssignableFrom(type))
                 throw new InvalidOperationException($"Can't initialize PlayerDatabase, the provided type \"{type.Name}\" is not an instance of PlayerDatabaseDataClass");
 
-            this.type = type;
+            this.Type = type;
             this.sqlServerAddr = sqlServerAddr;
             this.tableName = tableName ?? type.Name.ToLower();
         }
@@ -44,10 +44,10 @@ namespace EMullen.Core.PlayerMgmt
 
             Debug.Log(json);
 
-            PlayerDatabaseDataClass toReturn = (PlayerDatabaseDataClass) JsonConvert.DeserializeObject(json, type);
+            PlayerDatabaseDataClass toReturn = (PlayerDatabaseDataClass) JsonConvert.DeserializeObject(json, Type);
 
             if(toReturn == null)
-                Debug.LogError($"Failed to deserialize object of type {type.Name} with returned web data:\n{json}");
+                Debug.LogError($"Failed to deserialize object of type {Type.Name} with returned web data:\n{json}");
 
             return toReturn;
         }
@@ -66,7 +66,7 @@ namespace EMullen.Core.PlayerMgmt
                 return false;
             }
 
-            JObject obj = new JObject(json);
+            JObject obj = JObject.Parse(json);
             if(!obj.ContainsKey("contains")) {
                 Debug.LogError("Returned JSON doesn't have contains key in it.");
                 return false;
@@ -83,8 +83,8 @@ namespace EMullen.Core.PlayerMgmt
         /// <returns>Success status.</returns>
         public async Task<bool> Set(PlayerDatabaseDataClass data) 
         {
-            if(!data.GetType().IsInstanceOfType(type)) {
-                Debug.LogError($"Can't set data to database, provided data's type ({data.GetType().Name}) doesn't match the database type ({type.Name})");
+            if(!data.GetType().Equals(Type)) {
+                Debug.LogError($"Can't set data to database, provided data's type ({data.GetType().Name}) doesn't match the database type ({Type.Name})");
                 return false;
             }
             if(data == null) {

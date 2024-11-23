@@ -76,13 +76,17 @@ namespace EMullen.PlayerMgmt
 
         private void NetworkOnDisable() 
         {
-            InstanceFinder.ServerManager.UnregisterBroadcast<RegistryJoinBroadcast>(OnRegistryJoinBroadcast);
-            InstanceFinder.ServerManager.UnregisterBroadcast<RegistryOperationBroadcast>(OnRegistryOperationBroadcast);
-            InstanceFinder.ServerManager.UnregisterBroadcast<PlayerDataUpdateBroadcast>(OnPlayerDataUpdateBroadcastFromClient);
+            if(InstanceFinder.ServerManager != null) {
+                InstanceFinder.ServerManager.UnregisterBroadcast<RegistryJoinBroadcast>(OnRegistryJoinBroadcast);
+                InstanceFinder.ServerManager.UnregisterBroadcast<RegistryOperationBroadcast>(OnRegistryOperationBroadcast);
+                InstanceFinder.ServerManager.UnregisterBroadcast<PlayerDataUpdateBroadcast>(OnPlayerDataUpdateBroadcastFromClient);
+            }
 
-            InstanceFinder.ClientManager.UnregisterBroadcast<RegistrySyncBroadcast>(OnRegistrySyncBroadcastFromServer);
-            InstanceFinder.ClientManager.UnregisterBroadcast<PlayerDataUpdateBroadcast>(OnPlayerDataUpdateBroadcastFromServer);
-        
+            if(InstanceFinder.ClientManager != null) {
+                InstanceFinder.ClientManager.UnregisterBroadcast<RegistrySyncBroadcast>(OnRegistrySyncBroadcastFromServer);
+                InstanceFinder.ClientManager.UnregisterBroadcast<PlayerDataUpdateBroadcast>(OnPlayerDataUpdateBroadcastFromServer);
+            }
+
             UnsubscribeFromNetworkEvents();
         }
 #endregion
@@ -110,7 +114,7 @@ namespace EMullen.PlayerMgmt
             NetworkIdentifierData newNID = new(connection.ClientId);
         
             // Apply new NetworkIdentifierData and add to the registry
-            data.SetDataNoUpdate(newNID);
+            data.SetData(newNID, false);
             Add(data, batchOperation);
         }
 
@@ -145,7 +149,7 @@ namespace EMullen.PlayerMgmt
             if(InstanceFinder.IsServerStarted) {
                 PlayerDatas.Add(data.GetUID(), data);
                 if(!batchOperation)
-                    SendSynchronizeBroadcast();
+                    SendSynchronizeBroadcast(RegistrySyncBroadcast.Reason.PLAYER_LIST_CHANGED);
             } else if(InstanceFinder.IsClientOnlyStarted) {
                 InstanceFinder.ClientManager.Broadcast(new RegistryOperationBroadcast(data, RegistryOperationBroadcast.Operation.ADD));
             } else
@@ -161,7 +165,7 @@ namespace EMullen.PlayerMgmt
             if(InstanceFinder.IsServerStarted) {
                 PlayerDatas.Remove(data.GetUID());
                 if(!batchOperation)
-                    SendSynchronizeBroadcast();
+                    SendSynchronizeBroadcast(RegistrySyncBroadcast.Reason.PLAYER_LIST_CHANGED);
             } else if(InstanceFinder.IsClientOnlyStarted) {
                 InstanceFinder.ClientManager.Broadcast(new RegistryOperationBroadcast(data, RegistryOperationBroadcast.Operation.REMOVE));
             } else
@@ -172,14 +176,14 @@ namespace EMullen.PlayerMgmt
         /// Called in PlayerDataRegistry#UpdatePlayerData to handle the update operation
         /// </summary>
         /// <param name="data"></param>
-        private void HandleNetworkUpdate(PlayerData data) 
+        private void HandleNetworkUpdate(PlayerData data, Type updatedType) 
         {
             PlayerDatas[data.GetUID()] = data;
 
             if(InstanceFinder.IsServerStarted) {
-                SendUpdateBroadcast(data);
+                SendUpdateBroadcast(data, updatedType);
             } else if(InstanceFinder.IsClientOnlyStarted) {
-                InstanceFinder.ClientManager.Broadcast(new PlayerDataUpdateBroadcast(data));
+                InstanceFinder.ClientManager.Broadcast(new PlayerDataUpdateBroadcast(data, updatedType.FullName));
             } else
                 Debug.LogWarning("Attempting to handle networked add but don't know how to handle server/client setup.");            
         }
@@ -299,10 +303,23 @@ namespace EMullen.PlayerMgmt
         /// <summary>The server side callback- the server recieves broadcast from client.</summary>
         private void OnPlayerDataUpdateBroadcastFromClient(NetworkConnection connection, PlayerDataUpdateBroadcast broadcast, Channel channel) 
         {
+            Type updatedType = GetTypeByName(broadcast.typeName);
+
+            // Ensure we've read the updated type correctly
+            if(updatedType == null)
+                throw new InvalidOperationException("FATAL: Failed to resolve type name from broadcast, can't proceed in updating locally and to other clients.");
+
+            // Check if the connection has permission to update this type
+            if(!CanModify(broadcast.data, updatedType, connection)) {
+                SendSynchronizeBroadcastToClient(connection, RegistrySyncBroadcast.Reason.UPDATE_PERMISSION_DENIED);
+                Debug.LogWarning($"Connection ID {connection.ClientId} tried to modify data type \"{updatedType.Name}\" without permission");
+                return;
+            }
+
             // Update the player data locally
-            UpdatePlayerData(broadcast.data);
+            UpdatePlayerData(broadcast.data, updatedType);
             // Send update broadcast to all clients
-            SendUpdateBroadcast(broadcast.data);
+            SendUpdateBroadcast(broadcast.data, updatedType);
         }
 
 #endregion
@@ -316,7 +333,13 @@ namespace EMullen.PlayerMgmt
         /// <summary> The client side callback- the client recieves broadcast from server. </summary>
         private void OnPlayerDataUpdateBroadcastFromServer(PlayerDataUpdateBroadcast broadcast, Channel channel) 
         {
-            UpdatePlayerData(broadcast.data, true);
+            Type updatedType = GetTypeByName(broadcast.typeName);
+
+            // Ensure we've read the updated type correctly
+            if(updatedType == null)
+                throw new InvalidOperationException("FATAL: Failed to resolve type name from broadcast, can't proceed in updating locally.");
+
+            UpdatePlayerData(broadcast.data, updatedType, true);
         }
 #endregion
 
@@ -325,22 +348,38 @@ namespace EMullen.PlayerMgmt
         /// Given the current state of the PlayerDataRegistry on the server, send a
         ///   RegistrySyncBroadcast to all clients.
         /// </summary>
-        private void SendSynchronizeBroadcast() 
+        private void SendSynchronizeBroadcast(RegistrySyncBroadcast.Reason reason = RegistrySyncBroadcast.Reason.NONE) 
         {
             List<NetworkConnection> clients = InstanceFinder.ServerManager.Clients.Values.ToList();
-            clients.ForEach(clientOut => {
-                // TODO: Add/Remove specific data types based on permissions list
-                RegistrySyncBroadcast broadcast = new(PlayerDatas);
-                InstanceFinder.ServerManager.Broadcast(clientOut, broadcast);                    
-            });
+            clients.ForEach(clientOut => SendSynchronizeBroadcastToClient(clientOut, reason));
         }
 
-        private void SendUpdateBroadcast(PlayerData updatedData) 
+        private void SendSynchronizeBroadcastToClient(NetworkConnection client, RegistrySyncBroadcast.Reason reason = RegistrySyncBroadcast.Reason.NONE) 
+        {
+            // Create a new registry dictionary tuned to this client, with data types it's allowed to see.
+            Dictionary<string, PlayerData> dictToClient = new();
+            PlayerDatas.Values.ToList().ForEach(origData => {
+                PlayerData data = origData.Clone();
+                foreach(Type type in data.Types) {
+                    if(!CanShow(data, type, client))
+                        data.ClearData(type, false);
+                }
+                dictToClient.Add(data.GetUID(), data);
+            });
+
+            RegistrySyncBroadcast broadcast = new(dictToClient, reason);
+            InstanceFinder.ServerManager.Broadcast(client, broadcast);                    
+        }
+
+        private void SendUpdateBroadcast(PlayerData updatedData, Type updatedType) 
         {
             List<NetworkConnection> clients = InstanceFinder.ServerManager.Clients.Values.ToList();
             clients.ForEach(clientOut => {
-                // TODO: Add/Remove specific data types based on permissions list
-                PlayerDataUpdateBroadcast broadcast = new(updatedData);
+                // Only send the update if the client can see the data, block others here
+                if(!CanShow(updatedData, updatedType, clientOut))
+                    return;
+
+                PlayerDataUpdateBroadcast broadcast = new(updatedData, updatedType.FullName);
                 InstanceFinder.ServerManager.Broadcast(clientOut, broadcast);                    
             });
         }

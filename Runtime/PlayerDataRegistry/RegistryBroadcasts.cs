@@ -33,9 +33,18 @@ namespace EMullen.PlayerMgmt
     public readonly struct RegistrySyncBroadcast : IBroadcast 
     {
         public readonly Dictionary<string, PlayerData> playerDatas;
-        public RegistrySyncBroadcast(Dictionary<string, PlayerData> playerDatas) 
+        public readonly Reason reason;
+        
+        public RegistrySyncBroadcast(Dictionary<string, PlayerData> playerDatas, Reason reason = Reason.NONE) 
         {
             this.playerDatas = playerDatas;
+            this.reason = reason;
+        }
+
+        [Serializable]
+        public enum Reason 
+        {
+            NONE, PLAYER_LIST_CHANGED, UPDATE_PERMISSION_DENIED
         }
     }
 
@@ -58,9 +67,11 @@ namespace EMullen.PlayerMgmt
     public readonly struct PlayerDataUpdateBroadcast : IBroadcast 
     {
         public readonly PlayerData data;
-        public PlayerDataUpdateBroadcast(PlayerData data) 
+        public readonly string typeName;
+        public PlayerDataUpdateBroadcast(PlayerData data, string typeName) 
         {
             this.data = data;
+            this.typeName = typeName;
         }
     }
 }

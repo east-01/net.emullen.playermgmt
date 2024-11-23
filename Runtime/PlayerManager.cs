@@ -91,7 +91,7 @@ namespace EMullen.PlayerMgmt {
             PlayerInputManager.onPlayerJoined -= AddPlayer;
             PlayerInputManager.onPlayerLeft -= RemovePlayer;		
         }
-
+        
         private void Update() 
         {
             // We always need an input for player 1

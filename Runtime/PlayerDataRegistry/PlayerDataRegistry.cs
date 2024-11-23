@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
 using EMullen.Core;
+using EMullen.Core.PlayerMgmt;
 using UnityEngine;
 
 namespace EMullen.PlayerMgmt 
@@ -56,8 +57,19 @@ namespace EMullen.PlayerMgmt
             
             NetworkedAwake();
             WebAwake();
+            PermissionsAwake();
 
             PlayerDatas = new();
+        }
+
+        /// On application quit call to remove all local players
+        private void OnApplicationQuit() 
+        {
+            if(Networked)
+                return;
+
+            List<PlayerData> saveable = PlayerDatas.Values.ToList();
+            saveable.ForEach(pd => Remove(pd));
         }
 
         private void OnEnable() 
@@ -101,6 +113,8 @@ namespace EMullen.PlayerMgmt
             } else {
                 HandleNetworkAdd(data, batchOperation); // Pass add behaviour to be handled by networked registry.
             }            
+
+            LoadDatabaseEntries(data);
         }
 
         /// <summary>
@@ -128,6 +142,8 @@ namespace EMullen.PlayerMgmt
             } else {
                 HandleNetworkRemove(data, batchOperation); // Pass remove behaviour to be handled by networked registry.
             }
+
+            SaveDatabaseEntries(data);
         }
 
         public bool Contains(string uid) => PlayerDatas.ContainsKey(uid);
@@ -140,7 +156,7 @@ namespace EMullen.PlayerMgmt
         ///    only update the data locally. Used in the PlayerDataUpdateBroadcast callback.</param>
         /// <exception cref="RegistryOperationException">Thrown if the data doesn't have a UID or 
         ///    the data isn't in the registry</exception>
-        public void UpdatePlayerData(PlayerData data, bool overrideNetworkUpdate = false) 
+        public void UpdatePlayerData(PlayerData data, Type updatedType, bool overrideNetworkUpdate = false) 
         {
             // Ensure the PlayerData has its uid
             if(!data.HasData<IdentifierData>())
@@ -152,7 +168,7 @@ namespace EMullen.PlayerMgmt
             if(!Networked || overrideNetworkUpdate) { 
                 PlayerDatas[data.GetUID()] = data; // If the registry isn't networked update the data normally
             } else {
-                HandleNetworkUpdate(data); // Pass update behaviour to be handled by networked registry.
+                HandleNetworkUpdate(data, updatedType); // Pass update behaviour to be handled by networked registry.
             }
         }
 
@@ -173,6 +189,18 @@ namespace EMullen.PlayerMgmt
             return PlayerDatas.Values.ToArray();
         }
 #endregion
+
+        private Type GetTypeByName(string typeName)
+        {
+            // Search in all loaded assemblies
+            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies()) {
+                var type = assembly.GetType(typeName);
+                if (type != null && typeof(PlayerDatabaseDataClass).IsAssignableFrom(type)) {
+                    return type;
+                }
+            }
+            return null;
+        }
 
     }
 

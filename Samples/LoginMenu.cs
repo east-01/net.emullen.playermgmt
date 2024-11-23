@@ -28,12 +28,13 @@ namespace EMullen.PlayerMgmt.Samples
 
         private bool loginMode = true;
         private float statusClearTime;
-        private bool waiting = false;
 
         private new void Awake() 
         {
             base.Awake();
             PlayerManager.Instance.LocalPlayerRequiresLoginEvent += OnLocalPlayerRequiresLoginEvent;
+
+            passInput.onSubmit.AddListener(OnPassInputSubmit);
         }
 
         private new void OnDestroy() 
@@ -60,13 +61,21 @@ namespace EMullen.PlayerMgmt.Samples
         }
 
         /// <summary>
+        /// Callback from passInput input field when the user presses enter.
+        /// </summary>
+        private void OnPassInputSubmit(string submit) 
+        {
+            if(passInput.wasCanceled)
+                return;
+
+            Submit();
+        }
+
+        /// <summary>
         /// Callback from submit button/password onSubmit to submit the username and password
         /// </summary>
         public async void Submit() 
         {
-            if(waiting)
-                return;
-
             if(FocusedPlayer == null) {
                 Debug.LogError("Can't submit log in screen, focused player is null.");
                 return;
@@ -93,8 +102,6 @@ namespace EMullen.PlayerMgmt.Samples
             } catch(AuthenticationException exception) {
                 Debug.LogError($"Failed to {(loginMode ? "log in" : "register")} user: {exception.message}");
                 ShowStatusText(exception.message, true);
-            } finally {
-                waiting = false;
             }
         }        
 
@@ -107,6 +114,7 @@ namespace EMullen.PlayerMgmt.Samples
         
             titleText.text = loginMode ? "Log In" : "Register";
             registerText.text = loginMode ? "Don't have an account?" : "Already have an account?";
+            registerButtonText.text = loginMode ? "Register" : "Log In";
         }
 
         public void ShowStatusText(string message, bool isError = false) 

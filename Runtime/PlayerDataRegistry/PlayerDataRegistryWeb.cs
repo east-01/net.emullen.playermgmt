@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using EMullen.Core;
 using EMullen.Core.PlayerMgmt;
@@ -49,16 +50,37 @@ namespace EMullen.PlayerMgmt
 
         private PlayerDatabase GetDatabase(Type type) => databases[type];
 
-        private Type GetTypeByName(string typeName)
+        /// <summary>
+        /// Load the PlayerData database types for each loaded PlayerDatabase.
+        /// Called when the player is added to the registry.
+        /// </summary>
+        private void LoadDatabaseEntries(PlayerData data) 
         {
-            // Search in all loaded assemblies
-            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies()) {
-                var type = assembly.GetType(typeName);
-                if (type != null && typeof(PlayerDatabaseDataClass).IsAssignableFrom(type)) {
-                    return type;
-                }
-            }
-            return null;
+            BLog.Log($"Loading database entries for \"{data.GetUID()}\"");
+            databases.Values.ToList().ForEach(async database => {
+                bool inDatabase = await database.Contains(data.GetUID());
+                BLog.Log($"  In database {database.Type.Name}: {inDatabase}");
+                if(!inDatabase)
+                    return;
+
+                PlayerDatabaseDataClass databaseData = await database.Get(data.GetUID());
+                data.SetData(databaseData, database.Type);
+                BLog.Log($"  Set data type {databaseData.GetType().Name}");
+            });
+        }
+
+        /// <summary>
+        /// Save the PlayerData database types for each loaded PlayerDatabase.
+        /// Called when the player is removed from the registry.
+        /// </summary>
+        private void SaveDatabaseEntries(PlayerData data) 
+        {
+            databases.Values.ToList().ForEach((Action<PlayerDatabase>)(async database => {
+                if(!data.HasData(database.Type))
+                    return;
+
+                await database.Set((PlayerDatabaseDataClass) data.GetData(database.Type));
+            }));
         }
     }
 
@@ -66,7 +88,6 @@ namespace EMullen.PlayerMgmt
     public struct PlayerDatabaseMetadata 
     {
         public string databaseURL;
-        public Assembly typeAssembly;
         public string typeName;
     }
 }

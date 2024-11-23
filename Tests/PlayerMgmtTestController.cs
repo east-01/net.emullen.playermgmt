@@ -115,6 +115,9 @@ namespace EMullen.PlayerMgmt.Tests
                 case "login":
                     InputCommand_LogIn(argsNoCMD);
                     break;
+                case "setscore":                
+                    InputCommand_SetScore(argsNoCMD);
+                    break;
                 default:
                     Debug.LogError($"Didn't recognize command \"{command}\"");
                     break;
@@ -205,6 +208,24 @@ namespace EMullen.PlayerMgmt.Tests
 
             Debug.Log("Logged in: " + obj.ToString());
         }
+
+        public void InputCommand_SetScore(string[] args) 
+        {
+            if(args.Length != 1) {
+                Debug.LogError("Incorrect amount of arguments");
+                return;
+            }
+
+            SimplePlayerData spd;
+            if(SelectedPlayer.HasData<SimplePlayerData>())
+                spd = SelectedPlayer.GetData<SimplePlayerData>();
+            else
+                spd = new(SelectedPlayer.GetUID(), 0);
+
+            spd.Score = float.Parse(args[0]);
+            SelectedPlayer.SetData(spd);
+
+        }
     }
 #endregion
 
@@ -214,11 +235,12 @@ public class SimplePlayerData : PlayerDatabaseDataClass
 {
     private string uid;
     public override string UID => uid;
-    private float score;
-    public float Score => score;
+    public float Score;
 
     public SimplePlayerData(string uid, float score) {
         this.uid = uid;
-        this.score = score;
+        this.Score = score;
     }
+
+    public override string ToString() => $"Score: {Score}";
 }

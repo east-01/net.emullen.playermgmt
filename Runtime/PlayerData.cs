@@ -32,75 +32,147 @@ namespace EMullen.PlayerMgmt {
         public PlayerData(int playerIndex) 
         {
             data = new();
-            SetDataNoUpdate(new IdentifierData(playerIndex));
+            SetData(new IdentifierData(playerIndex), false);
         }
 
         public PlayerData(IdentifierData identifierData) {
             data = new();
-            SetDataNoUpdate(identifierData);
+            SetData(identifierData, false);
         }
 
 #region Data Management
-        public bool HasData<T>() where T : PlayerDataClass => data.ContainsKey(typeof(T));
-        public T GetData<T>() where T : PlayerDataClass
+        /// <summary>
+        /// Internal HasData check, allows for checking if the PlayerData has any type, but will
+        ///   throw an exception if the provided type isn't a subclass of PlayerDataClass.
+        /// </summary>
+        /// <param name="type">The type to check if contained in PlayerData.</param>
+        /// <returns>Contains status.</returns>
+        /// <exception cref="InvalidOperationException">Provided type isn't a subclass of
+        ///    PlayerDataClass</exception>
+        internal bool HasData(Type type) 
         {
-            if(!HasData<T>()) {
-                UnityEngine.Debug.LogError($"Failed to retrieve data of type \"{typeof(T)}\" Returned default values. Use PlayerData#HasData<{typeof(T)}> to ensure this player has the data before retrieving it.");
-                return default(T);
-            }
-            return (T) data[typeof(T)];
-        }
-
-        public void SetData<T>(T data) where T : PlayerDataClass
-        {
-            SetDataNoUpdate(data);
-            PlayerDataRegistry.Instance.UpdatePlayerData(this);
+            // Ensure type is a subclass of PlayerDataClass
+            if(!typeof(PlayerDataClass).IsAssignableFrom(type))
+                throw new InvalidOperationException("Provided type isn't a subclass of PlayerDataClass.");
+        
+            return data.ContainsKey(type);
         }
 
         /// <summary>
-        /// Sets the players data without making an update callback to the PlayerDataRegistry,
-        ///   not recommended for use as the PlayerDataRegistry should always have the latest
-        ///   information. Used for initialization.
+        /// Check if the PlayerData has a specific data type, where the data type is a subclass
+        ///   of PlayerDataClass.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="data"></param>
-        internal void SetDataNoUpdate<T>(T data) where T : PlayerDataClass 
+        /// <typeparam name="T">The type to check if contained in PlayerData.</typeparam>
+        /// <returns>Contains status.</returns>
+        public bool HasData<T>() where T : PlayerDataClass => HasData(typeof(T));
+
+        /// <summary>
+        /// Internal GetData call, retrieve the data of any type from the PlayerData.
+        /// </summary>
+        /// <param name="type">The type to get from PlayerData.</param>
+        /// <returns>The PlayerDataClass of type contained in PlayerDataClass.</returns>
+        /// <exception cref="InvalidOperationException">Provided type isn't a subclass of
+        ///    PlayerDataClass, PlayerData doesn't contain type.</exception>
+        internal PlayerDataClass GetData(Type type) 
         {
-            if(HasData<T>()) {
-                this.data[typeof(T)] = data;
-            } else {
-                this.data.Add(typeof(T), data);
-            }
+            // Ensure type is a subclass of PlayerDataClass
+            if(!typeof(PlayerDataClass).IsAssignableFrom(type))
+                throw new InvalidOperationException("Provided type isn't a subclass of PlayerDataClass.");
+
+            // Ensure we have the target PlayerData type
+            if(!HasData(type))
+                throw new InvalidOperationException($"Failed to retrieve data of type \"{type.Name}\" Returned default values. Use PlayerData#HasData<{type.Name}> to ensure this player has the data before retrieving it.");
+
+            return data[type];
         }
 
         /// <summary>
-        /// Set data from an object type instead of a PlayerDataClass.
-        /// Used interally for deserialization where we can infer the type is a PlayerDataClass.
+        /// Get the PlayerData for a specific data type. 
         /// </summary>
-        internal void SetData(object data) 
+        /// <typeparam name="T">The type to get from PlayerData.</typeparam>
+        /// <returns>The PlayerDataClass of type contained in PlayerDataClass.</returns>
+        /// <exception cref="InvalidOperationException">Provided type isn't a subclass of
+        ///    PlayerDataClass, PlayerData doesn't contain type.</exception>
+        public T GetData<T>() where T : PlayerDataClass => (T) GetData(typeof(T));
+
+        /// <summary>
+        /// Internal SetData call, allows setting of any object type, as long as the type is a
+        ///   subclass of PlayerDataClass.
+        /// </summary>
+        /// <param name="data">The object data to be set (must be subdata of PlayerDataClass)</param>
+        /// <param name="type">The type of the data</param>
+        /// <param name="update">Update the PlayerData in the registry.</param>
+        /// <exception cref="InvalidOperationException">The provided type is not a subclass of 
+        ///   PlayerDataClass.</exception>
+        internal void SetData(object data, Type type, bool update = true) 
         {
-            BLog.Log($"Setting anonymous data type \"{data.GetType()}\"", PlayerDataRegistry.Instance.LogSettingsPlayerData, 4);
-            if(data is not PlayerDataClass) {
-                Debug.LogError("Can't SetData anonymously since it is not an instance of PlayerDataClass");
-                return;
-            }
-            if(this.data.ContainsKey(data.GetType())) {
-                this.data[data.GetType()] = (PlayerDataClass)data;
-            } else {
-                this.data.Add(data.GetType(), (PlayerDataClass)data);
-            }
+            // Ensure type is a subclass of PlayerDataClass
+            if(!typeof(PlayerDataClass).IsAssignableFrom(type))
+                throw new InvalidOperationException($"Provided type ({type.Name}) isn't a subclass of PlayerDataClass.");
+
+            // Overwrite or add incoming data to the data dictionary.
+            if(HasData(type))
+                this.data[type] = (PlayerDataClass) data;
+            else
+                this.data.Add(type, (PlayerDataClass) data);
+            
+            // Update if necessary
+            if(update)
+                PlayerDataRegistry.Instance.UpdatePlayerData(this, type);
         }
 
-        public void ClearData<T>() where T : PlayerDataClass 
+        /// <summary>
+        /// SetData for a specific data type, with an added update call to allow blocking of
+        ///   automatic updates.
+        /// </summary>
+        /// <typeparam name="T">The data type to set.</typeparam>
+        /// <param name="data">The data object to set in the PlayerData.</param>
+        /// <param name="update">Update the PlayerData in the registry.</param>
+        internal void SetData<T>(T data, bool update = true) where T : PlayerDataClass => SetData(data, typeof(T), update);
+
+        /// <summary>
+        /// SetData for a specific data type, with an added update call to allow blocking of
+        ///   automatic updates.
+        /// </summary>
+        /// <typeparam name="T">The data type to set.</typeparam>
+        /// <param name="data">The data object to set in the PlayerData.</param>
+        public void SetData<T>(T data) where T : PlayerDataClass => SetData(data, typeof(T));
+
+        /// <summary>
+        /// Intern ClearData call allowing you to clear the data for any specific type.
+        /// </summary>
+        /// <param name="type">The type to clear</param>
+        /// <param name="update">Perform an UpdatePlayerData call in the registry after updating.</param>
+        internal void ClearData(Type type, bool update = true) 
         {
-            if(!HasData<T>()) {
-                UnityEngine.Debug.LogError($"Can't clear data of type \"{typeof(T)}\"");
+            if(!HasData(type)) {
+                Debug.LogError($"Can't clear data of type \"{type.Name}\" the PlayerData doesn't have it.");
                 return;
             }
-            data.Remove(typeof(T));
-            PlayerDataRegistry.Instance.UpdatePlayerData(this);
+
+            data.Remove(type);
+
+            if(update)
+                PlayerDataRegistry.Instance.UpdatePlayerData(this, type);
         }
+
+        /// <summary>
+        /// Remove the data for a specific data type.
+        /// </summary>
+        /// <typeparam name="T">The data type to clear.</typeparam>
+        public void ClearData<T>() where T : PlayerDataClass => ClearData(typeof(T));
 #endregion
+
+    public PlayerData Clone()
+    {
+        // Serialize this instance to a JSON string
+        string jsonString = JsonConvert.SerializeObject(this);
+
+        // Deserialize the JSON string back to a new instance of PlayerData
+        PlayerData clone = JsonConvert.DeserializeObject<PlayerData>(jsonString);
+
+        return clone;
+    }
 
 #region Serializers
         public List<PlayerDataClass> PlayerDataClassList => data.Values.ToList();
@@ -121,8 +193,6 @@ namespace EMullen.PlayerMgmt {
         {
             DeserializePlayerDataClassList(serializedClasses);
         }
-
-        
 #endregion
 
     }
@@ -173,7 +243,7 @@ namespace EMullen.PlayerMgmt {
                     continue;
                 }
                 object deserialized = JsonConvert.DeserializeObject(json, type);
-                pd.SetData(deserialized);
+                pd.SetData(deserialized, deserialized.GetType());
                 BLog.Log($"Deserializing type \"{typeString}\" from json:", PlayerDataRegistry.Instance.LogSettingsPlayerData, 4);
                 BLog.Log(json, PlayerDataRegistry.Instance.LogSettingsPlayerData, 4);
                 count--;
