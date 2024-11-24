@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using EMullen.Core;
 using EMullen.Core.PlayerMgmt;
 using FishNet.Connection;
 using UnityEngine;
@@ -24,7 +25,7 @@ namespace EMullen.PlayerMgmt
             // Load a list of type names
             Dictionary<Type, Handler> LoadHandlers(List<TypeNameHandlerPair> dataTypeNames) {            
                 Dictionary<Type, Handler> outDict = new();
-                visibilityMetadata.ForEach(handlerPair => {                    
+                dataTypeNames.ForEach(handlerPair => {                    
                     // Resolve the type from its name and ensure it loaded properly
                     Type type = GetTypeByName(handlerPair.typeName);
                     if(type == null) {
