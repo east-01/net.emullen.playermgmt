@@ -44,7 +44,7 @@ namespace EMullen.PlayerMgmt
         public bool Transitioning => NetworkPhase == NetworkedRegistryPhase.JOINING || NetworkPhase == NetworkedRegistryPhase.DISCONNECTING;
 
         [SerializeField]
-        private float joinMessageTimeout = 10;
+        private float joinBroadcastTimeout = 10;
         /// <summary>
         /// The time since we last sent the PDRSyncBroadcast to the server, set from the joining
         ///   phases client section in UpdatePhase.
@@ -225,7 +225,7 @@ namespace EMullen.PlayerMgmt
                         NetworkPhase = NetworkedRegistryPhase.IN_USE;
 
                     } else if(InstanceFinder.IsClientOnlyStarted) {
-                        if(lastBroadcastTime == -1 || (Time.time - lastBroadcastTime > joinMessageTimeout)) {
+                        if(lastBroadcastTime == -1 || (Time.time - lastBroadcastTime > joinBroadcastTimeout)) {
                             // Create broadcast and send to server
                             RegistryJoinBroadcast broadcast = new(PlayerDatas.Values.ToList());
                             InstanceFinder.ClientManager.Broadcast(broadcast);
@@ -233,9 +233,10 @@ namespace EMullen.PlayerMgmt
                         }
 
                         // Get all local players, check if they're in the registry and if they have NetworkIdentifierData
-                        List<LocalPlayer> localPlayers = PlayerManager.Instance.LocalPlayers.Where(lp => lp != null).ToList();
-                        bool allLPInRegistry = localPlayers.All(lp => PlayerDatas.ContainsKey(lp.UID));
-                        bool allLPHasNID = localPlayers.All(lp => PlayerDatas[lp.UID].HasData<NetworkIdentifierData>());
+                        bool HasPlayerDatas = PlayerDatas != null;
+                        List<LocalPlayer> localPlayers = PlayerManager.Instance.LocalPlayers.Where(lp => lp != null && lp.UID != null).ToList();
+                        bool allLPInRegistry = HasPlayerDatas && localPlayers.All(lp => PlayerDatas.ContainsKey(lp.UID));
+                        bool allLPHasNID = HasPlayerDatas && localPlayers.All(lp => PlayerDatas[lp.UID].HasData<NetworkIdentifierData>());
 
                         // If the above conditions are met that means we've synced with the server's registry successfully.
                         if(allLPInRegistry && allLPHasNID)
@@ -260,7 +261,7 @@ namespace EMullen.PlayerMgmt
                     // Create new dictionary to replace the existing one
                     Dictionary<string, PlayerData> newPlayerDatas = new();
 
-                    List<string> localUIDs = PlayerManager.Instance.LocalPlayers.Where(lp => lp != null).Select(lp => lp.UID).ToList();
+                    List<string> localUIDs = PlayerManager.Instance.LocalPlayers.Where(lp => lp != null && lp.UID != null).Select(lp => lp.UID).ToList();
                     localUIDs.ForEach(uid => {
                         // Get the PlayerData and clear its NetworkIdentifier data
                         PlayerData pd = PlayerDatas[uid];
@@ -327,6 +328,9 @@ namespace EMullen.PlayerMgmt
 #region Client side broadcast callbacks
         private void OnRegistrySyncBroadcastFromServer(RegistrySyncBroadcast broadcast, Channel channel)
         {
+            if(broadcast.reason == RegistrySyncBroadcast.Reason.UPDATE_PERMISSION_DENIED)
+                Debug.LogError("You were warned from the server for updating a PlayerDataClass you weren't allowed to. Registry has been re-synced.");
+
             PlayerDatas = broadcast.playerDatas;
         }
 
@@ -337,7 +341,7 @@ namespace EMullen.PlayerMgmt
 
             // Ensure we've read the updated type correctly
             if(updatedType == null)
-                throw new InvalidOperationException("FATAL: Failed to resolve type name from broadcast, can't proceed in updating locally.");
+                throw new InvalidOperationException($"FATAL: Failed to resolve type name \"{broadcast.typeName}\" from broadcast, can't proceed in updating locally.");
 
             UpdatePlayerData(broadcast.data, updatedType, true);
         }

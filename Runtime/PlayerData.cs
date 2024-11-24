@@ -21,7 +21,7 @@ namespace EMullen.PlayerMgmt {
         private List<PlayerDataClass> serializedClasses;
 
         public List<Type> Types => data.Keys.ToList();
-        public List<string> TypeNames => Types.Select(type => type.Name).ToList();
+        public List<string> TypeNames => Types.Select(type => type.FullName).ToList();
         public List<PlayerDataClass> Datas => data.Values.ToList();
 
         [JsonConstructor]
@@ -73,7 +73,7 @@ namespace EMullen.PlayerMgmt {
         /// <returns>The PlayerDataClass of type contained in PlayerDataClass.</returns>
         /// <exception cref="InvalidOperationException">Provided type isn't a subclass of
         ///    PlayerDataClass, PlayerData doesn't contain type.</exception>
-        internal PlayerDataClass GetData(Type type) 
+        public PlayerDataClass GetData(Type type) 
         {
             // Ensure type is a subclass of PlayerDataClass
             if(!typeof(PlayerDataClass).IsAssignableFrom(type))
@@ -165,15 +165,25 @@ namespace EMullen.PlayerMgmt {
 
     public PlayerData Clone()
     {
-        // Serialize this instance to a JSON string
-        string jsonString = JsonConvert.SerializeObject(this);
-
-        // Deserialize the JSON string back to a new instance of PlayerData
-        PlayerData clone = JsonConvert.DeserializeObject<PlayerData>(jsonString);
-
+        PlayerData clone = new();
+        data.Values.ToList().ForEach(playerDataClass => {
+            string pdcJson = JsonConvert.SerializeObject(playerDataClass);
+            object clonedClass = JsonConvert.DeserializeObject(pdcJson, playerDataClass.GetType());
+            clone.SetData(clonedClass, clonedClass.GetType(), false);            
+        });
         return clone;
     }
 
+    // public PlayerData Clone()
+    // {
+    //     using (MemoryStream stream = new MemoryStream())
+    //     {
+    //         BinaryFormatter formatter = new BinaryFormatter();
+    //         formatter.Serialize(stream, this);
+    //         stream.Position = 0;
+    //         return (PlayerData)formatter.Deserialize(stream);
+    //     }
+    // }
 #region Serializers
         public List<PlayerDataClass> PlayerDataClassList => data.Values.ToList();
         public void DeserializePlayerDataClassList(List<PlayerDataClass> playerDataClassList) 
@@ -243,7 +253,7 @@ namespace EMullen.PlayerMgmt {
                     continue;
                 }
                 object deserialized = JsonConvert.DeserializeObject(json, type);
-                pd.SetData(deserialized, deserialized.GetType());
+                pd.SetData(deserialized, deserialized.GetType(), false);
                 BLog.Log($"Deserializing type \"{typeString}\" from json:", PlayerDataRegistry.Instance.LogSettingsPlayerData, 4);
                 BLog.Log(json, PlayerDataRegistry.Instance.LogSettingsPlayerData, 4);
                 count--;

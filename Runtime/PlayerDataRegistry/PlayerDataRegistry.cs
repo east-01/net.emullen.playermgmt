@@ -190,13 +190,19 @@ namespace EMullen.PlayerMgmt
         }
 #endregion
 
-        private Type GetTypeByName(string typeName)
+        public static Type GetTypeByName(string typeName)
         {
+            if(typeName == null || typeName.Length == 0)
+                return null;
+
             // Search in all loaded assemblies
-            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies()) {
+            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies()) {                
                 var type = assembly.GetType(typeName);
-                if (type != null && typeof(PlayerDatabaseDataClass).IsAssignableFrom(type)) {
-                    return type;
+                if (type != null) {
+                    if(typeof(PlayerDataClass).IsAssignableFrom(type))
+                        return type;
+                    else
+                        Debug.LogWarning($"Trying to resolve type name \"{typeName}\" and found type \"{type.FullName}\" but it is not a child class of PlayerDataClass");
                 }
             }
             return null;

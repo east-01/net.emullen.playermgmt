@@ -87,6 +87,9 @@ namespace EMullen.PlayerMgmt.Samples
                 return;
             }
 
+            bool clearUser = false;
+            bool clearPass = false;
+
             try {
                 if(loginMode) {
                     JObject loginResult = await auth.LogIn(userInput.text, passInput.text);
@@ -94,15 +97,26 @@ namespace EMullen.PlayerMgmt.Samples
                     string token = loginResult.GetValue("token").Value<string>();
                     FocusedPlayer.AddToPlayerDataRegistry(uid, token);
                     Close();
+                    clearUser = true;
+                    clearPass = true;
                 } else {
                     await auth.Register(userInput.text, passInput.text);
-                    ShowStatusText("Successfully registered.");                    
+                    ShowStatusText("Successfully registered. Please log in.");                    
                     ToggleMode();
                 }
             } catch(AuthenticationException exception) {
                 Debug.LogError($"Failed to {(loginMode ? "log in" : "register")} user: {exception.message}");
                 ShowStatusText(exception.message, true);
+                clearUser = !loginMode;
+                clearPass = true;
             }
+
+            if(clearUser)
+                userInput.text = "";
+            
+            if(clearPass)
+                passInput.text = "";
+
         }        
 
         /// <summary>

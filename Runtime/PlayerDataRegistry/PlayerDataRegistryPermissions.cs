@@ -116,7 +116,19 @@ namespace EMullen.PlayerMgmt
     [Serializable]
     public struct TypeNameHandlerPair 
     {
+        [SubclassSelector(typeof(PlayerDataClass))]
         public string typeName;
         public Handler handler;
+    }
+    
+    // This class is just a marker for the custom property drawer
+    public class SubclassSelectorAttribute : PropertyAttribute
+    {
+        public System.Type BaseType { get; }
+
+        public SubclassSelectorAttribute(System.Type baseType)
+        {
+            BaseType = baseType;
+        }
     }
 }

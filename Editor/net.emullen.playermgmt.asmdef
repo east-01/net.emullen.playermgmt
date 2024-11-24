@@ -2,6 +2,12 @@
     "name": "PlayerMgmt.Editor",
     "rootNamespace": "EMullen.PlayerMgmt.Editor",
     "references": [
+        "Unity.InputSystem",
+        "Unity.TextMeshPro",
+        "Bootstrapper",
+        "Core",
+        "FishNet.Runtime",
+        "FishNet.Serializing",
         "PlayerMgmt"
     ],
     "optionalUnityReferences": [],

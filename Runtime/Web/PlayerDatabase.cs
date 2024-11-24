@@ -96,7 +96,6 @@ namespace EMullen.Core.PlayerMgmt
             string reqBody = WebRequests.CreateInsertJSON(tableName, serializedObject).ToString();
             string result = await WebRequests.WebPostString($"{sqlServerAddr}/insert", reqBody);
 
-            Debug.Log(result);
             return result != null;
         }
     }

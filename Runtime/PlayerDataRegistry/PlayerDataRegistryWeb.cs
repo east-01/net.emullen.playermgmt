@@ -55,7 +55,10 @@ namespace EMullen.PlayerMgmt
         /// Called when the player is added to the registry.
         /// </summary>
         private void LoadDatabaseEntries(PlayerData data) 
-        {
+        {   
+            if(!authenticationRequired)
+                return;
+
             BLog.Log($"Loading database entries for \"{data.GetUID()}\"");
             databases.Values.ToList().ForEach(async database => {
                 bool inDatabase = await database.Contains(data.GetUID());
@@ -75,6 +78,9 @@ namespace EMullen.PlayerMgmt
         /// </summary>
         private void SaveDatabaseEntries(PlayerData data) 
         {
+            if(!authenticationRequired)
+                return;
+
             databases.Values.ToList().ForEach((Action<PlayerDatabase>)(async database => {
                 if(!data.HasData(database.Type))
                     return;
