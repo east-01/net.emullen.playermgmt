@@ -4,10 +4,10 @@
     "references": [
         "Unity.InputSystem",
         "Unity.TextMeshPro",
-        "Bootstrapper",
-        "Core",
         "FishNet.Runtime",
         "FishNet.Serializing",
+        "Bootstrapper",
+        "Core",
         "PlayerMgmt"
     ],
     "optionalUnityReferences": [],

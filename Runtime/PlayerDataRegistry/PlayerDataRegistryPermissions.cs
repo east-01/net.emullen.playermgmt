@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using EMullen.Core;
+using EMullen.Core.Editor;
 using EMullen.Core.PlayerMgmt;
 using FishNet.Connection;
 using UnityEngine;
@@ -66,7 +68,15 @@ namespace EMullen.PlayerMgmt
         /// <returns>True if the data type can be shown</returns>
         internal bool CanShow(PlayerData data, Type type, NetworkConnection target) 
         {
-            Handler handler = visibility.ContainsKey(type) ? visibility[type] : Handler.EVERYONE;
+            Handler handler;
+            RequireVisibilityHandler rvh = type.GetCustomAttribute<RequireVisibilityHandler>();
+            if(rvh != null) {
+                handler = rvh.requiredHandler;
+            } else if(visibility.ContainsKey(type)) {
+                handler = visibility[type];
+            } else {
+                handler = Handler.EVERYONE;
+            }
             return SatisfiesHandlerCase(data, handler, target);
         }
 
@@ -122,14 +132,21 @@ namespace EMullen.PlayerMgmt
         public Handler handler;
     }
     
-    // This class is just a marker for the custom property drawer
-    public class SubclassSelectorAttribute : PropertyAttribute
+    public class RequireVisibilityHandler : Attribute 
     {
-        public System.Type BaseType { get; }
-
-        public SubclassSelectorAttribute(System.Type baseType)
+        public Handler requiredHandler;
+        public RequireVisibilityHandler(Handler requiredHandler) 
         {
-            BaseType = baseType;
+            this.requiredHandler = requiredHandler;
+        }
+    }
+
+    public class RequireMutabilityHandler : Attribute 
+    {
+        public Handler requiredHandler;
+        public RequireMutabilityHandler(Handler requiredHandler) 
+        {
+            this.requiredHandler = requiredHandler;
         }
     }
 }

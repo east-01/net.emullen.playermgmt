@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using EMullen.Core;
+using EMullen.Core.Editor;
 using EMullen.Core.PlayerMgmt;
 using UnityEngine;
 
@@ -59,16 +60,16 @@ namespace EMullen.PlayerMgmt
             if(!authenticationRequired)
                 return;
 
-            BLog.Log($"Loading database entries for \"{data.GetUID()}\"");
+            BLog.Log($"Loading database entries for \"{data.GetUID()}\"", LogSettings, 4);
             databases.Values.ToList().ForEach(async database => {
                 bool inDatabase = await database.Contains(data.GetUID());
-                BLog.Log($"  In database {database.Type.Name}: {inDatabase}");
+                BLog.Log($"  In database {database.Type.Name}: {inDatabase}", LogSettings, 4);
                 if(!inDatabase)
                     return;
 
                 PlayerDatabaseDataClass databaseData = await database.Get(data.GetUID());
                 data.SetData(databaseData, database.Type);
-                BLog.Log($"  Set data type {databaseData.GetType().Name}");
+                BLog.Log($"  Set data type {databaseData.GetType().Name}", LogSettings, 4);
             });
         }
 
@@ -94,6 +95,7 @@ namespace EMullen.PlayerMgmt
     public struct PlayerDatabaseMetadata 
     {
         public string databaseURL;
+        [SubclassSelector(typeof(PlayerDatabaseDataClass))]
         public string typeName;
     }
 }

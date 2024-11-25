@@ -6,6 +6,7 @@
         "Unity.TextMeshPro",
         "Bootstrapper",
         "Core",
+        "Core.Editor",
         "FishNet.Runtime",
         "FishNet.Serializing"
     ],

@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.Serialization;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -45,7 +46,7 @@ namespace EMullen.PlayerMgmt
                 await WebRequests.WebPostString($"{authServerAddr}/register", reqBody);
             } catch(UnityWebRequestException exception) {
                 // Throw authentication exception with details from the WebRequestException
-                throw new AuthenticationException(exception, exception.responseCode == 400 ? exception.text : "A backend server error occurred.");
+                throw new AuthenticationException(exception.responseCode == 400 ? exception.text : "A backend server error occurred.", exception);
             }
         }
 
@@ -71,7 +72,32 @@ namespace EMullen.PlayerMgmt
                 json = await WebRequests.WebPostString($"{authServerAddr}/login", reqBody);
             } catch(UnityWebRequestException exception) {
                 // Throw authentication exception with details from the WebRequestException
-                throw new AuthenticationException(exception, exception.responseCode == 400 ? exception.text : "A backend server error occurred.");
+                throw new AuthenticationException(exception.responseCode == 400 ? exception.text : "A backend server error occurred.", exception);
+            }
+
+            JObject parsedJSON;
+
+            try {
+                // Parse the provided string json into a JObject 
+                parsedJSON = JObject.Parse(json);
+            } catch(JsonReaderException exception) {
+                Debug.LogError(exception.Message);
+                return null;
+            }
+
+            return parsedJSON;
+        }
+
+        public async Task<JObject> RefreshLogIn(string token) 
+        {
+            string reqBody = WebRequests.CreateRefreshJSON(token).ToString();
+            string json;
+
+            try {
+                json = await WebRequests.WebPostString($"{authServerAddr}/refresh-token", reqBody);
+            } catch(UnityWebRequestException exception) {
+                // Throw authentication exception with details from the WebRequestException
+                throw new AuthenticationException(exception.responseCode == 400 ? exception.text : "A backend server error occurred.", exception);
             }
 
             JObject parsedJSON;
@@ -92,14 +118,14 @@ namespace EMullen.PlayerMgmt
     /// An exception relating to all authentication errors, holds the culprit WebRequestException
     ///   and additional message from the authentication server.
     /// </summary>
-    public class AuthenticationException : Exception 
+    [Serializable]
+    public class AuthenticationException : Exception
     {
-        public readonly UnityWebRequestException webException;
-        public readonly string message;
-        public AuthenticationException(UnityWebRequestException webException, string message) 
-        {
-            this.webException = webException;
-            this.message = message;
-        }
+        public UnityWebRequestException WebException => InnerException != null ? (UnityWebRequestException) InnerException : null;
+
+        public AuthenticationException() : base() {}
+        public AuthenticationException(string message) : base(message) {}
+        public AuthenticationException(string message, Exception innerException) : base(message, innerException) {}
+        protected AuthenticationException(SerializationInfo info, StreamingContext context) : base(info, context) {}
     }
 }

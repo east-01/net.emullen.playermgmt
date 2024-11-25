@@ -14,30 +14,6 @@ namespace EMullen.PlayerMgmt
     {
 #region Web calls
         /// <summary>
-        /// Perform a web GET request via the provided url, takes the result and returns it in the
-        ///   form of a string.
-        /// </summary>
-        /// <param name="url">The URL of the GET request.</param>
-        /// <returns>The string form of the result.</returns>
-        public static async Task<string> WebGetString(string url)
-        {
-            using UnityWebRequest webRequest = UnityWebRequest.Get(url);
-         
-            var asyncOp = webRequest.SendWebRequest();
-
-            while (!asyncOp.isDone)
-                await Task.Yield();
-
-            if (webRequest.result == UnityWebRequest.Result.ConnectionError ||
-                webRequest.result == UnityWebRequest.Result.ProtocolError) {
-                Debug.LogError($"Error making get request for url \"{url}\":\n{webRequest.error}");
-                return null;
-            } else {
-                return webRequest.downloadHandler.text;
-            }
-        }
-
-        /// <summary>
         /// Perform a web POST request via the provided url, takes the result and returns it in the
         ///   form of a string.
         /// The body of the POST request is converted into a byte array via Encoding#UTF8#GetBytes,
@@ -92,24 +68,31 @@ namespace EMullen.PlayerMgmt
             };
         }
 
-        public static JObject CreateSQLJSON(string tableName) 
+        public static JObject CreateRefreshJSON(string token) 
         {
             return new() {
-                // TODO: Auth token?
+                {"refreshToken", token}
+            };
+        }
+
+        public static JObject CreateSQLJSON(string token, string tableName) 
+        {
+            return new() {
+                {"token", token},
                 {"table", tableName}
             };
         }
 
-        public static JObject CreateIDJSON(string tableName, string uid) 
+        public static JObject CreateIDJSON(string token, string tableName, string uid) 
         {
-            JObject jsonBase = CreateSQLJSON(tableName);
+            JObject jsonBase = CreateSQLJSON(token, tableName);
             jsonBase.Add("uid", uid);
             return jsonBase;
         }
 
-        public static JObject CreateInsertJSON(string tableName, string jsonData) 
+        public static JObject CreateInsertJSON(string token, string tableName, string jsonData) 
         {
-            JObject jsonBase = CreateSQLJSON(tableName);
+            JObject jsonBase = CreateSQLJSON(token, tableName);
             JObject parsedJson = LowerCaseKeys(JObject.Parse(jsonData));
             jsonBase.Add("data", parsedJson);
             return jsonBase;

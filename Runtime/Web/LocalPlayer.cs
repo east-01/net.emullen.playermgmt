@@ -35,12 +35,17 @@ namespace EMullen.PlayerMgmt
             // Populate UID field if necessary
             uid ??= IdentifierData.GenerateUID();
 
+            if(registry.Contains(uid))
+                throw new InvalidOperationException("Failed to add new player: Player is already registered");
+
             // Create IdentifierData and PlayerData objects for this LocalPlayer
             IdentifierData identifierData = new(uid, Input.playerIndex);
             PlayerData data = new(identifierData);
 
-            if(registry.Contains(uid))
-                throw new InvalidOperationException("Failed to add new player: Player is already registered");
+            if(authToken != null) {
+                DatabaseTokenData dbTokenData = new(authToken);
+                data.SetData(dbTokenData, typeof(DatabaseTokenData), false);
+            }
 
             registry.Add(data);
         }

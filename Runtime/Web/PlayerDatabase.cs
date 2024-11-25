@@ -4,6 +4,7 @@ using UnityEngine;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Runtime.Serialization;
 
 namespace EMullen.Core.PlayerMgmt 
 {
@@ -34,20 +35,28 @@ namespace EMullen.Core.PlayerMgmt
         /// <returns>The PlayerDatabaseDataClass associated with the uid if it exists, null if not.</returns>
         public async Task<PlayerDatabaseDataClass> Get(string uid) 
         {
-            string reqBody = WebRequests.CreateIDJSON(tableName, uid).ToString();
-            string json = await WebRequests.WebPostString($"{sqlServerAddr}/fetch", reqBody);
+            string token = RetrieveToken(uid);
+            if(token == null)
+                throw new InvalidOperationException($"Failed to check contains status, couldn't retrieve the database token belonging to uid \"{uid}\"");
 
-            if(json == null) {
-                Debug.LogError("The returned JSON was null.");
-                return null;
+            string reqBody = WebRequests.CreateIDJSON(token, tableName, uid).ToString();
+            string json;
+
+            try {
+                json = await WebRequests.WebPostString($"{sqlServerAddr}/fetch", reqBody);
+            } catch(UnityWebRequestException exception) {
+                // Throw database exception with details from the WebRequestException
+                throw new DatabaseException(exception.responseCode == 400 ? exception.text : "A backend server error occurred.", exception);
             }
 
-            Debug.Log(json);
+            PlayerDatabaseDataClass toReturn;
 
-            PlayerDatabaseDataClass toReturn = (PlayerDatabaseDataClass) JsonConvert.DeserializeObject(json, Type);
-
-            if(toReturn == null)
-                Debug.LogError($"Failed to deserialize object of type {Type.Name} with returned web data:\n{json}");
+            try {
+                toReturn = (PlayerDatabaseDataClass) JsonConvert.DeserializeObject(json, Type);
+            } catch(JsonReaderException exception) {
+                Debug.LogError(exception.Message);
+                return null;
+            }
 
             return toReturn;
         }
@@ -58,21 +67,31 @@ namespace EMullen.Core.PlayerMgmt
         /// <returns>Is the UID in database</returns>
         public async Task<bool> Contains(string uid) 
         {
-            string reqBody = WebRequests.CreateIDJSON(tableName, uid).ToString();
-            string json = await WebRequests.WebPostString($"{sqlServerAddr}/contains", reqBody);
+            string token = RetrieveToken(uid);
+            if(token == null)
+                throw new InvalidOperationException($"Failed to check contains status, couldn't retrieve the database token belonging to uid \"{uid}\"");
 
-            if(json == null) {
-                Debug.LogError("The returned JSON was null.");
+            string reqBody = WebRequests.CreateIDJSON(token, tableName, uid).ToString();
+            string json;
+
+            try {
+                json = await WebRequests.WebPostString($"{sqlServerAddr}/contains", reqBody);
+            } catch(UnityWebRequestException exception) {
+                // Throw database exception with details from the WebRequestException
+                throw new DatabaseException(exception.responseCode == 400 ? exception.text : "A backend server error occurred.", exception);
+            }
+
+            JObject parsedJSON;
+
+            try {
+                // Parse the provided string json into a JObject 
+                parsedJSON = JObject.Parse(json);
+            } catch(JsonReaderException exception) {
+                Debug.LogError(exception.Message);
                 return false;
             }
 
-            JObject obj = JObject.Parse(json);
-            if(!obj.ContainsKey("contains")) {
-                Debug.LogError("Returned JSON doesn't have contains key in it.");
-                return false;
-            }
-
-            return obj.GetValue("contains").Value<bool>();
+            return parsedJSON.ContainsKey("contains");
         }
 
         /// <summary>
@@ -83,20 +102,51 @@ namespace EMullen.Core.PlayerMgmt
         /// <returns>Success status.</returns>
         public async Task<bool> Set(PlayerDatabaseDataClass data) 
         {
-            if(!data.GetType().Equals(Type)) {
-                Debug.LogError($"Can't set data to database, provided data's type ({data.GetType().Name}) doesn't match the database type ({Type.Name})");
-                return false;
-            }
-            if(data == null) {
-                Debug.LogError("Can't set data to database, provided data is null.");
-                return false;
-            }
+            if(!data.GetType().Equals(Type))
+                throw new InvalidOperationException($"Can't set data to database, provided data's type ({data.GetType().Name}) doesn't match the database type ({Type.Name})");
+
+            if(data == null)
+                throw new InvalidOperationException("Can't set data to database, provided data is null.");
 
             string serializedObject = JsonConvert.SerializeObject(data);
-            string reqBody = WebRequests.CreateInsertJSON(tableName, serializedObject).ToString();
-            string result = await WebRequests.WebPostString($"{sqlServerAddr}/insert", reqBody);
+            string uid = JObject.Parse(serializedObject).GetValue("uid").Value<string>();
+            string token = RetrieveToken(uid);
+            if(token == null)
+                throw new InvalidOperationException($"Failed to get data, couldn't retrieve the database token belonging to uid \"{uid}\"");
 
-            return result != null;
+            string reqBody = WebRequests.CreateInsertJSON(token, tableName, serializedObject).ToString();
+            string json;
+
+            try {
+                json = await WebRequests.WebPostString($"{sqlServerAddr}/insert", reqBody);
+            } catch(UnityWebRequestException exception) {
+                // Throw database exception with details from the WebRequestException
+                throw new DatabaseException(exception.responseCode == 400 ? exception.text : "A backend server error occurred.", exception);
+            }
+
+            return json != null;
+        }
+
+        /// <summary>
+        /// Retrieve the database token belonging to the specific uid contained in the locally
+        ///   instantited PlayerDatabaseRegistry
+        /// </summary>
+        /// <param name="uid">The token that belongs to the uid</param>
+        /// <returns>The string token if it exists, null otherwise.</returns>
+        private string RetrieveToken(string uid) 
+        {
+            if(PlayerDataRegistry.Instance == null)
+                return null;
+            
+            if(!PlayerDataRegistry.Instance.Contains(uid))
+                return null;
+            
+            PlayerData data = PlayerDataRegistry.Instance.GetPlayerData(uid);
+
+            if(!data.HasData<DatabaseTokenData>())
+                return null;
+
+            return data.GetData<DatabaseTokenData>().token;
         }
     }
 
@@ -108,5 +158,20 @@ namespace EMullen.Core.PlayerMgmt
     public abstract class PlayerDatabaseDataClass : PlayerDataClass 
     {
         public abstract string UID { get; }
+    }
+
+    /// <summary>
+    /// An exception relating to all database errors, holds the culprit WebRequestException
+    ///   and additional message from the database server.
+    /// </summary>
+    [Serializable]
+    public class DatabaseException : Exception
+    {
+        public UnityWebRequestException WebException => InnerException != null ? (UnityWebRequestException) InnerException : null;
+
+        public DatabaseException() : base() {}
+        public DatabaseException(string message) : base(message) {}
+        public DatabaseException(string message, Exception innerException) : base(message, innerException) {}
+        protected DatabaseException(SerializationInfo info, StreamingContext context) : base(info, context) {}
     }
 }

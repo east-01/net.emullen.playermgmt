@@ -178,7 +178,7 @@ namespace EMullen.PlayerMgmt.Tests
             try {
                 await auth.Register(args[0], args[1]);
             } catch(AuthenticationException exception) {
-                Debug.LogError("Failed to register: " + exception.message);
+                Debug.LogError("Failed to register: " + exception.Message);
                 return;
             }
 
@@ -199,7 +199,7 @@ namespace EMullen.PlayerMgmt.Tests
             try {
                 obj = await auth.LogIn(args[0], args[1]);
             } catch(AuthenticationException exception) {
-                Debug.LogError("Failed to log in: " + exception.message);
+                Debug.LogError("Failed to log in: " + exception.Message);
                 return;
             } catch(Exception exception) {
                 Debug.LogError(exception.Message);
