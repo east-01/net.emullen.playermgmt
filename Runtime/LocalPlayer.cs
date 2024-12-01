@@ -48,6 +48,8 @@ namespace EMullen.PlayerMgmt
             }
 
             registry.Add(data);
+
+            UID = uid;
         }
 
         public PlayerData GetPlayerData() 
