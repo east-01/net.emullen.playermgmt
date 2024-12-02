@@ -67,7 +67,14 @@ namespace EMullen.PlayerMgmt
                 if(!inDatabase)
                     return;
 
-                PlayerDatabaseDataClass databaseData = await database.Get(data.GetUID());
+                PlayerDatabaseDataClass databaseData;
+                try {
+                    databaseData = await database.Get(data.GetUID());
+                } catch(DatabaseException exception) {
+                    Debug.LogError(exception.Message);
+                    return;
+                }
+
                 data.SetData(databaseData, database.Type);
                 BLog.Log($"  Set data type {databaseData.GetType().Name}", LogSettings, 4);
             });

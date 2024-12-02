@@ -91,7 +91,12 @@ namespace EMullen.Core.PlayerMgmt
                 return false;
             }
 
-            return parsedJSON.ContainsKey("contains");
+            if(!parsedJSON.ContainsKey("contains")) {
+                Debug.LogError("Failed to check contains status, returned JSON doesn't have a contains key.");
+                return false;
+            }
+
+            return parsedJSON.GetValue("contains").Value<bool>();
         }
 
         /// <summary>
