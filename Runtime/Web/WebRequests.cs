@@ -98,7 +98,7 @@ namespace EMullen.PlayerMgmt
             return jsonBase;
         }
 
-        private static JObject LowerCaseKeys(JObject input) 
+        public static JObject LowerCaseKeys(JObject input) 
         {
             if(input == null) {
                 Debug.LogError("Can't convert input to lower case keys, input is null.");

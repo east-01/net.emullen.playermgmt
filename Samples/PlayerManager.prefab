@@ -496,7 +496,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_NotificationBehavior: 3
   m_MaxPlayerCount: 4
-  m_AllowJoining: 1
+  m_AllowJoining: 0
   m_JoinBehavior: 0
   m_PlayerJoinedEvent:
     m_PersistentCalls:
@@ -558,7 +558,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   logSettings: {fileID: 11400000, guid: 5aa326e5a9946ef4faf5dbd5b2a1bbc1, type: 2}
   logSettingsPlayerData: {fileID: 11400000, guid: b207fadb89e44e74789407466f11b0ab, type: 2}
-  joinMessageTimeout: 10
+  joinBroadcastTimeout: 10
+  visibilityMetadata: []
+  mutabilityMetadata: []
   authenticationRequired: 0
   authAddress: 
   databaseMetadatas: []

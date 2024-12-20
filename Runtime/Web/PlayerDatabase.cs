@@ -114,7 +114,12 @@ namespace EMullen.Core.PlayerMgmt
                 throw new InvalidOperationException("Can't set data to database, provided data is null.");
 
             string serializedObject = JsonConvert.SerializeObject(data);
-            string uid = JObject.Parse(serializedObject).GetValue("uid").Value<string>();
+
+            JObject dataObject = WebRequests.LowerCaseKeys(JObject.Parse(serializedObject));
+            if(!dataObject.ContainsKey("uid"))
+                throw new InvalidOperationException($"Can't set data to database, provided data doesn't have a uid key.\nOffending data:\n{serializedObject}");
+
+            string uid = dataObject.GetValue("uid").Value<string>();
             string token = RetrieveToken(uid);
             if(token == null)
                 throw new InvalidOperationException($"Failed to get data, couldn't retrieve the database token belonging to uid \"{uid}\"");
@@ -140,8 +145,10 @@ namespace EMullen.Core.PlayerMgmt
         /// <returns>The string token if it exists, null otherwise.</returns>
         private string RetrieveToken(string uid) 
         {
-            if(PlayerDataRegistry.Instance == null)
+            if(PlayerDataRegistry.Instance == null) {
+                Debug.LogWarning("Failed to retrieve token: PlayerDataRegistry instance is null.");
                 return null;
+            }
             
             if(!PlayerDataRegistry.Instance.Contains(uid))
                 return null;

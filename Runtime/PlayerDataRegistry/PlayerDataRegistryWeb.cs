@@ -84,7 +84,7 @@ namespace EMullen.PlayerMgmt
         /// Save the PlayerData database types for each loaded PlayerDatabase.
         /// Called when the player is removed from the registry.
         /// </summary>
-        private void SaveDatabaseEntries(PlayerData data) 
+        public void SaveDatabaseEntries(PlayerData data) 
         {
             if(!authenticationRequired)
                 return;

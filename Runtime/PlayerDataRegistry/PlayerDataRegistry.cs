@@ -137,13 +137,13 @@ namespace EMullen.PlayerMgmt
 
             BLog.Log($"Removing data with UID \"{data.GetUID()}\" from the data registry.", LogSettings, 2);
 
+            SaveDatabaseEntries(data);
+
             if(!Networked) { 
                 PlayerDatas.Remove(data.GetUID()); // If the registry isn't networked remove the data normally
             } else {
                 HandleNetworkRemove(data, batchOperation); // Pass remove behaviour to be handled by networked registry.
             }
-
-            SaveDatabaseEntries(data);
         }
 
         public bool Contains(string uid) => PlayerDatas.ContainsKey(uid);
