@@ -159,8 +159,20 @@ namespace EMullen.PlayerMgmt {
         public void RemovePlayer(LocalPlayer lp) => RemovePlayer(lp.Input);
 #endregion  
 
-#region PlayerDataRegistry interactions
-        
+#region Player Information Methods
+        /// <summary>
+        /// Gets the local index of the player's uid, found by cross-referencing the LocalPlayer
+        ///   array's indices with the uid in that position.
+        /// Can return null if the uid isn't found.
+        /// </summary>
+        public int? GetLocalIndex(string uid) 
+        {
+            for(int i = 0; i < LocalPlayers.Length; i++) {
+                if(LocalPlayers[i].UID == uid)
+                    return i;
+            }
+            return null;
+        }
 #endregion
 
 #region Input prompts

@@ -214,8 +214,7 @@ namespace EMullen.PlayerMgmt
                     if(InstanceFinder.IsServerStarted) {
                         // Get local siblingUIDs and create NetworkIdentifierData
                         List<string> siblingUIDs = PlayerDatas.Values.Select(pd => pd.GetUID()).ToList();
-                        NetworkIdentifierData newNID = new(-1);
-
+                        NetworkIdentifierData newNID = new(InstanceFinder.ClientManager.Connection.IsValid ? InstanceFinder.ClientManager.Connection.ClientId : 0);
                         // Apply new NetworkIdentifierData
                         PlayerDatas.Values.ToList().ForEach(pd => {
                             pd.SetData(newNID);
