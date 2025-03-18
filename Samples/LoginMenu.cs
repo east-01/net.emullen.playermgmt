@@ -1,9 +1,7 @@
 using System;
-using System.Threading.Tasks;
 using EMullen.Core;
 using Newtonsoft.Json.Linq;
 using TMPro;
-using UnityEditor.PackageManager;
 using UnityEngine;
 using UnityEngine.UI;
 
