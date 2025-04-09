@@ -148,7 +148,7 @@ namespace EMullen.PlayerMgmt.Tests
             string sqlServerAddr = "http://emullen.net:8921";
             string database = "testdb";
 
-            PlayerDatabase db = new(typeof(SimplePlayerData), sqlServerAddr, database);
+            SQLPlayerDatabase db = new(typeof(SimplePlayerData), sqlServerAddr, database);
             if(args[0] == "out") {
                 SimplePlayerData spd = (SimplePlayerData) await db.Get("abcd");
                 

@@ -54,9 +54,6 @@ namespace EMullen.PlayerMgmt {
 
         public delegate void LocalPlayerLeftHandler(LocalPlayer lp);
         public event LocalPlayerLeftHandler LocalPlayerLeftEvent;
-
-        public delegate void LocalPlayerRequiresLogin(LocalPlayer lp);
-        public event LocalPlayerRequiresLogin LocalPlayerRequiresLoginEvent;
 #endregion
 
         private void Awake()
@@ -118,10 +115,8 @@ namespace EMullen.PlayerMgmt {
             LocalPlayer newlp = new(input);
             LocalPlayers[input.playerIndex] = newlp;       
 
-            if(!PlayerDataRegistry.Instance.AuthenticationRequired)
-                newlp.AddToPlayerDataRegistry();
-            else
-                LocalPlayerRequiresLoginEvent?.Invoke(newlp);
+            if(PlayerDataRegistry.Instance != null)
+                PlayerDataRegistry.Instance.LoginHandler.Login(newlp, false);
 
             LocalPlayerJoinedEvent?.Invoke(newlp);     
         }

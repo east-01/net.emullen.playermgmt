@@ -23,12 +23,13 @@ namespace EMullen.PlayerMgmt.Editor
             selectedTabIndex %= ActiveTabTites.Length;
             return ActiveTabTites[selectedTabIndex]; 
         } }
-        private string[] TabTitles => new string[] {"Settings", "Network", "Web"};
-        private string[] TabTitlesRuntime => new string[] {"Runtime", "Settings", "Network", "Web"};
+        private string[] TabTitles => new string[] {"Settings", "Network", "Databases"};
+        private string[] TabTitlesRuntime => new string[] {"Runtime", "Settings", "Network", "Databases"};
         // Pick tab titles base on the PlayerDataRegistry singleton being instantiated.
         private string[] ActiveTabTites => PlayerDataRegistry.Instance == null ? TabTitles : TabTitlesRuntime;
 
         // Settings
+        private SerializedProperty sp_loginHandler;
         private SerializedProperty sp_logSettings;
         private SerializedProperty sp_logSettingsPlayerData;
 
@@ -39,23 +40,22 @@ namespace EMullen.PlayerMgmt.Editor
         private SerializedProperty sp_visibilityMetadata;
         private SerializedProperty sp_mutabilityMetadata;
 
-        // Web
-        private SerializedProperty sp_authenticationRequired;
-        private SerializedProperty sp_authAddress;
+        // Database
+        private SerializedProperty sp_enableDatabase;
         private SerializedProperty sp_databaseMetadatas;
 
         private void OnEnable() 
         {
+            sp_loginHandler = serializedObject.FindProperty("_loginHandler");
             sp_logSettings = serializedObject.FindProperty("logSettings");
             sp_logSettingsPlayerData = serializedObject.FindProperty("logSettingsPlayerData");
-
+            
             sp_joinBroadcastTimeout = serializedObject.FindProperty("joinBroadcastTimeout");
 
             sp_visibilityMetadata = serializedObject.FindProperty("visibilityMetadata");
             sp_mutabilityMetadata = serializedObject.FindProperty("mutabilityMetadata");
 
-            sp_authenticationRequired = serializedObject.FindProperty("authenticationRequired");
-            sp_authAddress = serializedObject.FindProperty("authAddress");
+            sp_enableDatabase = serializedObject.FindProperty("enableDatabase");
             sp_databaseMetadatas = serializedObject.FindProperty("databaseMetadatas");
         }
 
@@ -77,8 +77,8 @@ namespace EMullen.PlayerMgmt.Editor
                 case "Network":
                     DrawNetwork();
                     break;
-                case "Web":
-                    DrawWeb();
+                case "Databases":
+                    DrawDatabases();
                     break;
             }
 
@@ -120,6 +120,9 @@ namespace EMullen.PlayerMgmt.Editor
 
         private void DrawSettings() 
         {
+            EditorGUILayout.PropertyField(sp_loginHandler, new GUIContent("Login handler"));
+            CustomEditorUtils.CreateNote("Assigns the player's uids.");
+
             EditorGUILayout.PropertyField(sp_logSettings, new GUIContent("Registry log settings"));
             EditorGUILayout.PropertyField(sp_logSettingsPlayerData, new GUIContent("PlayerData log settings"));
         }
@@ -141,17 +144,17 @@ namespace EMullen.PlayerMgmt.Editor
             EditorGUILayout.PropertyField(sp_mutabilityMetadata, new GUIContent("Mutability permissions"));
         }
 
-        private void DrawWeb() 
+        private void DrawDatabases() 
         {
-            EditorGUILayout.PropertyField(sp_authenticationRequired, new GUIContent("Authentication required"), true);
+            EditorGUILayout.PropertyField(sp_enableDatabase, new GUIContent("Authentication required"), true);
 
-            if(!sp_authenticationRequired.boolValue) {
-                CustomEditorUtils.CreateNote("Authentication is not required. Enable it to access authentication and database features.");
+            if(!sp_enableDatabase.boolValue) {
+                CustomEditorUtils.CreateNote("Databases disabled.");
                 return;
             }
 
-            EditorGUILayout.PropertyField(sp_authAddress, new GUIContent("Auth address"));
-            CustomEditorUtils.CreateNote("Address of the authentication server.");
+            CustomEditorUtils.CreateNote("For file system databases, address is the relative directory.");
+            CustomEditorUtils.CreateNote("For SQL databases, address is <endpoint url>[@table name]");
 
             EditorGUILayout.PropertyField(sp_databaseMetadatas);
         }

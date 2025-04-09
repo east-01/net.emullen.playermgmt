@@ -31,17 +31,15 @@ namespace EMullen.PlayerMgmt.Samples
         private bool loginMode = true;
         private float statusClearTime;
 
-        private string refreshToken;
-        private bool shouldRefresh;
-        private bool waitingOnRefreshStatus;
-        private JObject refreshLoginResult;
-        private bool prevWaitingOnRefreshStatus;
-        private bool refreshStatus;
-
         private new void Awake() 
         {
             base.Awake();
-            PlayerManager.Instance.LocalPlayerRequiresLoginEvent += OnLocalPlayerRequiresLoginEvent;
+            // PlayerManager.Instance.LocalPlayerJoinedEvent += LocalPlayerJoinedEvent;
+            PlayerDataRegistry.Instance.LoginHandlerChangeEvent += LoginHandlerChangedEvent;
+
+            // Initial subscribe to the LoginHandler's events
+            if(PlayerDataRegistry.Instance.LoginHandler != null)
+                LoginHandlerChangedEvent(null, PlayerDataRegistry.Instance.LoginHandler);
 
             passInput.onSubmit.AddListener(OnPassInputSubmit);
         }
@@ -49,7 +47,7 @@ namespace EMullen.PlayerMgmt.Samples
         private new void OnDestroy() 
         {
             base.OnDestroy();
-            PlayerManager.Instance.LocalPlayerRequiresLoginEvent -= OnLocalPlayerRequiresLoginEvent;
+            // PlayerManager.Instance.LocalPlayerJoinedEvent -= LocalPlayerJoinedEvent;
         }
 
         protected override void Opened() 
@@ -60,92 +58,60 @@ namespace EMullen.PlayerMgmt.Samples
 
         private void Update() 
         {
-            // Clear the status text, or show that we're refreshing the login
-            if(waitingOnRefreshStatus) {
-                SetStatusText("Logging in...");
+            if(PlayerDataRegistry.Instance.LoginHandler is not UserInputLoginHandler)
+                return;
+
+            UserInputLoginHandler loginHandler = PlayerDataRegistry.Instance.LoginHandler as UserInputLoginHandler;
+
+            // statusText.text = loginHandler.Status;
+
+            // // Clear the status text, or show that we're refreshing the login
+            // if(loginHandler) {
+            //     SetStatusText("Logging in...");
                 
-                userInput.text = "";
-                passInput.text = "";
-            } else if(Time.time > statusClearTime)
-                statusText.text = "";
+            //     userInput.text = "";
+            //     passInput.text = "";
+            // } else if(Time.time > statusClearTime)
+            //     statusText.text = "";
 
-            // Start of refresh cycle, shouldRefresh flag is set to true so we catch that here
-            if(shouldRefresh) {
-                // Reset refresh flag, this should only be set in OnLocalPlayerRequiresLoginEvent callback
-                shouldRefresh = false;
-
-                // Async method call to use the authentication library
-                async void RefreshLogin(LocalPlayer lp)
-                {
-                    waitingOnRefreshStatus = true; // Show that we're waiting for the refresh
-                    refreshStatus = false; // Initialize the refresh status to false
-
-                    try {
-                        // Make refresh login attempt, set refreshStatus to true if successful
-                        refreshLoginResult = await PlayerDataRegistry.Instance.Authenticator.RefreshLogIn(refreshToken);
-                        refreshStatus = refreshLoginResult != null;
-                    } catch(AuthenticationException authException) {
-                        Debug.LogError("Exception during RefreshLogIn: " + authException.Message);
-                    } catch (Exception ex) {
-                        Debug.LogError("Exception during RefreshLogIn: " + ex.Message);
-                    }
-
-                    waitingOnRefreshStatus = false; // Show that refresh is done
-                }
-
-                // Call aync method on main thread (unity complains if it's called in the event callback)
-                RefreshLogin(FocusedPlayer);
-            }
-
-            // End of the refresh cycle, this was given back to us by the async RefreshLogin call
-            //   from above, we can handle the login result on the main thread now that its here.
-            if(refreshLoginResult != null) {
-                HandleLoginResult(FocusedPlayer, refreshLoginResult);
-                refreshLoginResult = null; // Reset login result
-            }
+            
         }
 
-        private void OnLocalPlayerRequiresLoginEvent(LocalPlayer lp)
+        private void LoginStartedEvent(LocalPlayer lp, bool registering) 
         {
-            if(PlayerDataRegistry.Instance.Authenticator == null) {
-                Debug.LogError("Can't handle LogIn event, authenticator is null");
+            LoginHandler loginHandler = PlayerDataRegistry.Instance.LoginHandler;
+            if(loginHandler == null || loginHandler is not UserInputLoginHandler)
                 return;
-            }
+
+            bool isAuth = loginHandler is AuthServerLoginHandler;
+            passInput.gameObject.SetActive(isAuth);
 
             Open(lp);
-
-            // Should we try to refresh login
-            shouldRefresh = lp.Input.playerIndex == 0 && PlayerPrefs.HasKey("refreshToken") && !string.IsNullOrEmpty(PlayerPrefs.GetString("refreshToken"));
-            if(shouldRefresh) {
-                refreshToken = PlayerPrefs.GetString("refreshToken", null);
-                // Clear refresh token since they're only allowed to be used once.
-                PlayerPrefs.SetString("refreshToken", null);
-                PlayerPrefs.Save();
-            }
         }
 
-        public void HandleLoginResult(LocalPlayer player, JObject loginResult) 
+        private void LoginEndedEvent(LocalPlayer lp, bool registered, PlayerData resultData) 
         {
-            if(loginResult == null || !loginResult.ContainsKey("uid") || !loginResult.ContainsKey("token") || !loginResult.ContainsKey("refreshToken"))
-                throw new InvalidOperationException("Attempted to HandleLoginResult with " + (loginResult == null ? "null loginResult" : loginResult.ToString()));
-
-            string uid = loginResult.GetValue("uid").Value<string>();
-            string token = loginResult.GetValue("token").Value<string>();
-            string refreshToken = loginResult.GetValue("refreshToken").Value<string>();
-
-            BLog.Highlight("Save login toggle: " + saveLoginToggle.isOn);
-            if(saveLoginToggle.isOn) {
-                if(player.Input.playerIndex == 0) {
-                    PlayerPrefs.SetString("refreshToken", refreshToken);
-                    BLog.Log("Saved refresh token locally.");
-                } else {
-                    PlayerPrefs.SetString("refreshToken", null);
-                }
-            }
-            PlayerPrefs.Save();
-
-            FocusedPlayer.AddToPlayerDataRegistry(uid, token);
             Close();
+        }
+
+        private void LoginHandlerChangedEvent(LoginHandler oldHandler, LoginHandler newHandler) 
+        {
+            if(oldHandler != null)
+                LoginHandlerUnsubscribe(oldHandler);
+
+            LoginHandlerSubscribe(newHandler);            
+        }
+
+        private void LoginHandlerSubscribe(LoginHandler toSubTo) 
+        {
+            toSubTo.LoginStartedEvent += LoginStartedEvent;
+            toSubTo.LoginEndedEvent += LoginEndedEvent;
+        }
+
+        private void LoginHandlerUnsubscribe(LoginHandler toUnsubFrom) 
+        {
+            toUnsubFrom.LoginStartedEvent -= LoginStartedEvent;
+            toUnsubFrom.LoginEndedEvent -= LoginEndedEvent;
         }
 
 #region UI Element Callbacks
@@ -170,41 +136,18 @@ namespace EMullen.PlayerMgmt.Samples
                 return;
             }
 
-            if(waitingOnRefreshStatus)
+            LoginHandler loginHandler = PlayerDataRegistry.Instance.LoginHandler;
+            if(loginHandler == null || loginHandler is not UserInputLoginHandler)
                 return;
 
-            PlayerAuthenticator auth = PlayerDataRegistry.Instance.Authenticator;
-            if(auth == null) {
-                Debug.LogError("Can't submit log in screen, authenticator is null");
-                return;
-            }
+            UserInputLoginHandler userInputLoginHandler = loginHandler as UserInputLoginHandler;
 
-            bool clearUser = false;
-            bool clearPass = false;
+            string user = userInput.text;
+            string pass = userInput.text;
 
-            try {
-                if(loginMode) {
-                    JObject loginResult = await auth.LogIn(userInput.text, passInput.text);
-                    HandleLoginResult(FocusedPlayer, loginResult);
-                    clearUser = true;
-                    clearPass = true;
-                } else {
-                    await auth.Register(userInput.text, passInput.text);
-                    ShowStatusText("Successfully registered. Please log in.");                    
-                    ToggleMode();
-                }
-            } catch(AuthenticationException exception) {
-                Debug.LogError($"Failed to {(loginMode ? "log in" : "register")} user: {exception.Message}");
-                ShowStatusText(exception.Message, true);
-                clearUser = !loginMode;
-                clearPass = true;
-            }
+            UserInputLoginHandler.LoginInput input = new(new string[] {user, pass}, !loginMode);
 
-            if(clearUser)
-                userInput.text = "";
-            
-            if(clearPass)
-                passInput.text = "";
+            await userInputLoginHandler.AcceptInput(FocusedPlayer, input);
 
         }        
 

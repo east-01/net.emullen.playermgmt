@@ -43,6 +43,27 @@ namespace EMullen.PlayerMgmt
         /// </summary>
         internal Dictionary<string, PlayerData> PlayerDatas { get; private set; }
 
+        [SerializeField]
+        private LoginHandler _loginHandler;
+        /// <summary>
+        /// The LoginHandler the PlayerDataRegistry is currently using.
+        /// </summary>
+        public LoginHandler LoginHandler {
+            get => _loginHandler;
+            set {
+                LoginHandler oldValue = _loginHandler;
+                _loginHandler = value;
+                LoginHandlerChangeEvent?.Invoke(oldValue, _loginHandler);
+            }
+        }
+
+        public delegate void LoginHandlerChangeHandler(LoginHandler oldHandler, LoginHandler newHandler);
+        /// <summary>
+        /// The login handler changed event dictates when the login handler has changed, this
+        ///   allows for classes who are subscribed to the events to update.
+        /// </summary>
+        public event LoginHandlerChangeHandler LoginHandlerChangeEvent;
+
         private void Awake() 
         {
             // Set up singleton instance.
@@ -52,11 +73,16 @@ namespace EMullen.PlayerMgmt
                 return;
             }
 
+            if(LoginHandler == null) {
+                Debug.LogWarning("No LoginHandler on the PlayerDataRegistry, setting to RandomLoginHandler.");
+                LoginHandler = gameObject.AddComponent<RandomLoginHandler>();
+            }
+
             Instance = this;
             DontDestroyOnLoad(gameObject);
             
             NetworkedAwake();
-            WebAwake();
+            DatabaseAwake();
             PermissionsAwake();
 
             PlayerDatas = new();
@@ -208,6 +234,23 @@ namespace EMullen.PlayerMgmt
             return null;
         }
 
+        public static Type GetLoginHandlerTypeByName(string typeName)
+        {
+            if(typeName == null || typeName.Length == 0)
+                return null;
+
+            // Search in all loaded assemblies
+            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies()) {                
+                var type = assembly.GetType(typeName);
+                if (type != null) {
+                    if(typeof(LoginHandler).IsAssignableFrom(type))
+                        return type;
+                    else
+                        Debug.LogWarning($"Trying to resolve type name \"{typeName}\" and found type \"{type.FullName}\" but it is not a child class of LoginHandler");
+                }
+            }
+            return null;
+        }
     }
 
     [Serializable]

@@ -12,20 +12,13 @@ namespace EMullen.Core.PlayerMgmt
     /// Make connections to a PlayerData database containing type T. Requests to/from the datab
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public class PlayerDatabase {
+    public class SQLPlayerDatabase : PlayerDatabase {
 
-        public readonly Type Type;
         private readonly string sqlServerAddr;
-        private readonly string tableName;
 
-        public PlayerDatabase(Type type, string sqlServerAddr, string tableName = null) 
+        public SQLPlayerDatabase(Type type, string sqlServerAddr, string tableName = null) : base(type, tableName)
         {
-            if(!typeof(PlayerDatabaseDataClass).IsAssignableFrom(type))
-                throw new InvalidOperationException($"Can't initialize PlayerDatabase, the provided type \"{type.Name}\" is not an instance of PlayerDatabaseDataClass");
-
-            this.Type = type;
             this.sqlServerAddr = sqlServerAddr;
-            this.tableName = tableName ?? type.Name.ToLower();
         }
 
         /// <summary>
@@ -33,13 +26,13 @@ namespace EMullen.Core.PlayerMgmt
         /// </summary>
         /// <param name="uid">The UID identifier for the data.</param>
         /// <returns>The PlayerDatabaseDataClass associated with the uid if it exists, null if not.</returns>
-        public async Task<PlayerDatabaseDataClass> Get(string uid) 
+        public override async Task<PlayerDatabaseDataClass> Get(string uid) 
         {
             string token = RetrieveToken(uid);
             if(token == null)
                 throw new InvalidOperationException($"Failed to check contains status, couldn't retrieve the database token belonging to uid \"{uid}\"");
 
-            string reqBody = WebRequests.CreateIDJSON(token, tableName, uid).ToString();
+            string reqBody = WebRequests.CreateIDJSON(token, name, uid).ToString();
             string json;
 
             try {
@@ -65,13 +58,13 @@ namespace EMullen.Core.PlayerMgmt
         /// Check if the data belonging to the associated UID is in the database.
         /// </summary>
         /// <returns>Is the UID in database</returns>
-        public async Task<bool> Contains(string uid) 
+        public override async Task<bool> Contains(string uid) 
         {
             string token = RetrieveToken(uid);
             if(token == null)
                 throw new InvalidOperationException($"Failed to check contains status, couldn't retrieve the database token belonging to uid \"{uid}\"");
 
-            string reqBody = WebRequests.CreateIDJSON(token, tableName, uid).ToString();
+            string reqBody = WebRequests.CreateIDJSON(token, name, uid).ToString();
             string json;
 
             try {
@@ -105,7 +98,7 @@ namespace EMullen.Core.PlayerMgmt
         /// </summary>
         /// <param name="data">The associated data to be inserted into the table</param>
         /// <returns>Success status.</returns>
-        public async Task<bool> Set(PlayerDatabaseDataClass data) 
+        public override async Task<bool> Set(PlayerDatabaseDataClass data) 
         {
             if(!data.GetType().Equals(Type))
                 throw new InvalidOperationException($"Can't set data to database, provided data's type ({data.GetType().Name}) doesn't match the database type ({Type.Name})");
@@ -124,7 +117,7 @@ namespace EMullen.Core.PlayerMgmt
             if(token == null)
                 throw new InvalidOperationException($"Failed to get data, couldn't retrieve the database token belonging to uid \"{uid}\"");
 
-            string reqBody = WebRequests.CreateInsertJSON(token, tableName, serializedObject).ToString();
+            string reqBody = WebRequests.CreateInsertJSON(token, name, serializedObject).ToString();
             string json;
 
             try {
@@ -160,30 +153,5 @@ namespace EMullen.Core.PlayerMgmt
 
             return data.GetData<DatabaseTokenData>().token;
         }
-    }
-
-    /// <summary>
-    /// The PlayerDatabaseDataClass is an extension of the PlayerDataClass that enforces a string
-    ///   UID to be the first value. The UID is required to be first as it's the identifier for
-    ///   the data in each table.
-    /// </summary>
-    public abstract class PlayerDatabaseDataClass : PlayerDataClass 
-    {
-        public abstract string UID { get; }
-    }
-
-    /// <summary>
-    /// An exception relating to all database errors, holds the culprit WebRequestException
-    ///   and additional message from the database server.
-    /// </summary>
-    [Serializable]
-    public class DatabaseException : Exception
-    {
-        public UnityWebRequestException WebException => InnerException != null ? (UnityWebRequestException) InnerException : null;
-
-        public DatabaseException() : base() {}
-        public DatabaseException(string message) : base(message) {}
-        public DatabaseException(string message, Exception innerException) : base(message, innerException) {}
-        protected DatabaseException(SerializationInfo info, StreamingContext context) : base(info, context) {}
     }
 }
