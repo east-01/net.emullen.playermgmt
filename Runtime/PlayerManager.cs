@@ -163,6 +163,8 @@ namespace EMullen.PlayerMgmt {
         public int? GetLocalIndex(string uid) 
         {
             for(int i = 0; i < LocalPlayers.Length; i++) {
+                if(LocalPlayers[i] == null)
+                    continue;
                 if(LocalPlayers[i].UID == uid)
                     return i;
             }

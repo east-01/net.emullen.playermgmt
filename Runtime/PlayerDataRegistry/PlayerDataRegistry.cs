@@ -57,6 +57,12 @@ namespace EMullen.PlayerMgmt
             }
         }
 
+        public delegate void PlayerDataUpdatedHandler(PlayerData playerData, PlayerDataClass newData);
+        /// <summary>
+        /// This event is called when PlayerData updateds, the data that was changed is passed for
+        ///   comparison purposes.
+        /// </summary>
+        public event PlayerDataUpdatedHandler PlayerDataUpdatedEvent;
         public delegate void LoginHandlerChangeHandler(LoginHandler oldHandler, LoginHandler newHandler);
         /// <summary>
         /// The login handler changed event dictates when the login handler has changed, this
@@ -196,6 +202,9 @@ namespace EMullen.PlayerMgmt
             } else {
                 HandleNetworkUpdate(data, updatedType); // Pass update behaviour to be handled by networked registry.
             }
+
+            // Invoke update event
+            PlayerDataUpdatedEvent?.Invoke(data, data.GetData(updatedType));
         }
 
         public PlayerData GetPlayerData(string uid) 

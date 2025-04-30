@@ -180,6 +180,9 @@ namespace EMullen.PlayerMgmt
         {
             PlayerDatas[data.GetUID()] = data;
 
+            // Invoke update event locally
+            PlayerDataUpdatedEvent?.Invoke(data, data.GetData(updatedType));
+
             if(InstanceFinder.IsServerStarted) {
                 SendUpdateBroadcast(data, updatedType);
             } else if(InstanceFinder.IsClientOnlyStarted) {
