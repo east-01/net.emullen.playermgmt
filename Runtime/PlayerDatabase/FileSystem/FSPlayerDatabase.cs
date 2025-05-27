@@ -34,7 +34,7 @@ namespace EMullen.Core.PlayerMgmt
             string json = LoadData(GetPlayersPath(uid));
 
             if(json == null) {
-                Debug.LogError("");
+                Debug.LogError("Json is null");
             }
 
             PlayerDatabaseDataClass toReturn;
@@ -76,6 +76,10 @@ namespace EMullen.Core.PlayerMgmt
                 throw new InvalidOperationException($"Can't set data to database, provided data doesn't have a uid key.\nOffending data:\n{serializedObject}");
 
             string uid = dataObject.GetValue("uid").Value<string>();
+
+            if(uid == null || uid == "")
+                throw new InvalidOperationException($"Can't set data to database, provided data doesn't have a uid key, or key is empty.\nOffending data:\n{serializedObject}");
+
             string path = GetPlayersPath(uid);
 
             SaveData(serializedObject, path);

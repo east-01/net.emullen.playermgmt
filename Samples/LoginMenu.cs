@@ -4,6 +4,7 @@ using Newtonsoft.Json.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using static EMullen.PlayerMgmt.LoginHandler;
 
 namespace EMullen.PlayerMgmt.Samples 
 {
@@ -54,6 +55,10 @@ namespace EMullen.PlayerMgmt.Samples
         {
             base.Opened();
             statusClearTime = Time.time;
+
+            if(!Input.GetKey(KeyCode.Escape)) {
+                LoadInfoFromPlayerPrefs();
+            }
         }
 
         private void Update() 
@@ -114,6 +119,17 @@ namespace EMullen.PlayerMgmt.Samples
             toUnsubFrom.LoginEndedEvent -= LoginEndedEvent;
         }
 
+        private async void HandleLoginInput(UserInputLoginHandler.LoginInput input) 
+        {
+            LoginHandler loginHandler = PlayerDataRegistry.Instance.LoginHandler;
+            if(loginHandler == null || loginHandler is not UserInputLoginHandler)
+                return;
+
+            UserInputLoginHandler userInputLoginHandler = loginHandler as UserInputLoginHandler;
+
+            await userInputLoginHandler.AcceptInput(FocusedPlayer, input);
+        }
+
 #region UI Element Callbacks
         /// <summary>
         /// Callback from passInput input field when the user presses enter.
@@ -129,32 +145,52 @@ namespace EMullen.PlayerMgmt.Samples
         /// <summary>
         /// Callback from submit button/password onSubmit to submit the username and password
         /// </summary>
-        public async void Submit() 
+        public void Submit() 
         {
             if(FocusedPlayer == null) {
                 Debug.LogError("Can't submit log in screen, focused player is null.");
                 return;
             }
 
-            LoginHandler loginHandler = PlayerDataRegistry.Instance.LoginHandler;
-            if(loginHandler == null || loginHandler is not UserInputLoginHandler)
-                return;
-
-            UserInputLoginHandler userInputLoginHandler = loginHandler as UserInputLoginHandler;
-
             string user = userInput.text;
-            string pass = userInput.text;
+            string pass = passInput.text;
+
+            if(saveLoginToggle.isOn) {
+                SaveInfoToPlayerPrefs();
+            }
 
             UserInputLoginHandler.LoginInput input = new(new string[] {user, pass}, !loginMode);
-
-            await userInputLoginHandler.AcceptInput(FocusedPlayer, input);
-
+            HandleLoginInput(input);
         }        
 
         /// <summary>
         /// Callback from button to toggle between register/login mode
         /// </summary>
         public void ToggleMode() => SetLoginMode(!loginMode);
+#endregion
+
+#region Player prefs
+        public void SaveInfoToPlayerPrefs() 
+        {
+            PlayerPrefs.SetString("UserInput.Text", userInput.text);
+            PlayerPrefs.SetString("PassInput.Text", passInput.text);
+            PlayerPrefs.Save();
+            BLog.Highlight($"Saved {userInput.text} and {passInput.text}");
+        }
+
+        public bool LoadInfoFromPlayerPrefs() 
+        {
+            string user = PlayerPrefs.GetString("UserInput.Text", "");
+            BLog.Highlight($"Loaded {user}");
+            if(user == "")
+                return false;
+            string pass = PlayerPrefs.GetString("PassInput.Text", "");
+            BLog.Highlight($"Loaded {pass}");
+            
+            UserInputLoginHandler.LoginInput input = new(new string[] {user, pass}, false);
+            HandleLoginInput(input);
+            return true;
+        }
 #endregion
 
 #region UI Controls

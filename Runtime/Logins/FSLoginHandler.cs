@@ -28,6 +28,8 @@ namespace EMullen.PlayerMgmt
         {
             string uid = input.input[0];
 
+            BLog.Highlight($"Uid: {uid}");
+
             if(input.registering) {
                 string basePath = FSPlayerDatabase.GetPath(fsDatabaseName);
                 string playersPath = FSPlayerDatabase.GetPlayersPath(basePath, uid);
