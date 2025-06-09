@@ -47,7 +47,7 @@ namespace EMullen.PlayerMgmt
 
                     database = new SQLPlayerDatabase(t, addr_arr[0], addr_arr.Length > 1 ? addr_arr[1] : null);
                 } else if(md.databaseType == PlayerDatabase.DatabaseType.FILE_SYSTEM) {
-                    database = new FSPlayerDatabase(t);
+                    database = new FSPlayerDatabase(t, addr);
                 } else
                     throw new NotImplementedException($"Can't handle database type: {md.databaseType}");
 

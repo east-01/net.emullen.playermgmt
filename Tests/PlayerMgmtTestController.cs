@@ -6,9 +6,15 @@ using EMullen.Core.PlayerMgmt;
 using EMullen.PlayerMgmt;
 using EMullen.Core;
 using System.Collections;
-using Newtonsoft.Json.Linq;
 using System;
 using EMullen.PlayerMgmt.Samples;
+#if UNITY_2022_3_OR_NEWER
+using Unity.Plastic.Newtonsoft.Json;
+using Unity.Plastic.Newtonsoft.Json.Linq;
+#else
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+#endif
 
 namespace EMullen.PlayerMgmt.Tests 
 {

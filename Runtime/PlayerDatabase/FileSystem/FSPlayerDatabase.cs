@@ -1,12 +1,17 @@
 using System.Threading.Tasks;
 using EMullen.PlayerMgmt;
 using UnityEngine;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Runtime.Serialization;
 using System.Text;
 using System.IO;
+#if UNITY_2022_3_OR_NEWER
+using Unity.Plastic.Newtonsoft.Json;
+using Unity.Plastic.Newtonsoft.Json.Linq;
+#else
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+#endif
 
 namespace EMullen.Core.PlayerMgmt 
 {
@@ -33,8 +38,9 @@ namespace EMullen.Core.PlayerMgmt
         {
             string json = LoadData(GetPlayersPath(uid));
 
-            if(json == null) {
+            if(json == null || json == "") {
                 Debug.LogError("Json is null");
+                return null;
             }
 
             PlayerDatabaseDataClass toReturn;

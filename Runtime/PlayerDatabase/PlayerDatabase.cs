@@ -1,10 +1,15 @@
 using System.Threading.Tasks;
 using EMullen.PlayerMgmt;
 using UnityEngine;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Runtime.Serialization;
+#if UNITY_2022_3_OR_NEWER
+using Unity.Plastic.Newtonsoft.Json;
+using Unity.Plastic.Newtonsoft.Json.Linq;
+#else
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+#endif
 
 namespace EMullen.Core.PlayerMgmt 
 {

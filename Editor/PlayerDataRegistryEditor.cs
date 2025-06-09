@@ -6,7 +6,13 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 using EMullen.Core;
+#if UNITY_2022_3_OR_NEWER
+using Unity.Plastic.Newtonsoft.Json;
+using Unity.Plastic.Newtonsoft.Json.Linq;
+#else
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+#endif
 
 namespace EMullen.PlayerMgmt.Editor 
 {
