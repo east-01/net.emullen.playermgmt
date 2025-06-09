@@ -4,13 +4,8 @@ using System.Collections.Generic;
 using System.Runtime.Serialization;
 using System.Threading.Tasks;
 using UnityEngine;
-#if UNITY_2022_3_OR_NEWER
-using Unity.Plastic.Newtonsoft.Json;
-using Unity.Plastic.Newtonsoft.Json.Linq;
-#else
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-#endif
 
 namespace EMullen.PlayerMgmt
 {

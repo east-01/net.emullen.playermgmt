@@ -4,13 +4,7 @@ using System.Linq;
 using EMullen.Core;
 using FishNet.CodeGenerating;
 using FishNet.Serializing;
-
-#if UNITY_2022_3_OR_NEWER
-using Unity.Plastic.Newtonsoft.Json;
-#else
 using Newtonsoft.Json;
-#endif
-
 using UnityEngine;
 
 namespace EMullen.PlayerMgmt {

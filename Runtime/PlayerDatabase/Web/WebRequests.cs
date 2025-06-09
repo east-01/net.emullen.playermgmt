@@ -3,13 +3,8 @@ using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
-#if UNITY_2022_3_OR_NEWER
-using Unity.Plastic.Newtonsoft.Json;
-using Unity.Plastic.Newtonsoft.Json.Linq;
-#else
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-#endif
 
 namespace EMullen.PlayerMgmt 
 {
